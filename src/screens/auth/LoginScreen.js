@@ -1,19 +1,7 @@
-// src/screens/auth/LoginScreen.js
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform,
-  Alert 
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { saveToken } from '../../utils/storage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -28,33 +16,24 @@ const LoginScreen = ({ navigation }) => {
     }
 
     setIsLoading(true);
-
     try {
-      // In a real app, you would call your API here
-      // For demo purposes, we'll simulate a login
-      
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo: admin@example.com/admin123 for admin, user@example.com/user123 for customer
+
       let userRole = 'customer';
-      if (email === '1' && password === '1') {
+      if (email === 'admin' && password === 'admin') {
         userRole = 'admin';
-      } else if (email === '2' && password === '2') {
+      } else if (email === 'user' && password === 'user') {
         userRole = 'customer';
       } else {
-        throw new Error('Invalid credentials');
+        throw new Error('Thông tin đăng nhập không hợp lệ');
       }
-      
-      // Store user token and role
-      await AsyncStorage.setItem('userToken', 'demo-token');
-      await AsyncStorage.setItem('userRole', userRole);
-      
-      // Reload the app to trigger navigation change
-      navigation.reset({
-        index: 0,
-        routes: [{ name: userRole === 'admin' ? 'HomeScreen' : 'DrinkListScreen' }],
-      });
+
+      await saveToken('demo-token', userRole);
+      console.log('Đăng nhập thành công với vai trò:', userRole);
+
+      // ✅ Sử dụng replace thay vì reset để tránh lỗi
+      navigation.replace(userRole === 'admin' ? 'AdminHome' : 'CustomerHome');
+
     } catch (error) {
       Alert.alert('Đăng nhập thất bại', 'Email hoặc mật khẩu không chính xác');
     } finally {
@@ -63,23 +42,15 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/icon.png')} 
-            style={styles.logo}
-            defaultSource={require('../../assets/icon.png')}
-          />
+          <Image source={require('../../assets/images/icon.png')} style={styles.logo} />
           <Text style={styles.appTitle}>Coffee Shop</Text>
         </View>
 
         <View style={styles.formContainer}>
           <Text style={styles.title}>Đăng nhập</Text>
-          
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -91,7 +62,7 @@ const LoginScreen = ({ navigation }) => {
               autoCapitalize="none"
             />
           </View>
-          
+
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -101,47 +72,38 @@ const LoginScreen = ({ navigation }) => {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity 
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.passwordToggle}
-            >
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#666" />
             </TouchableOpacity>
           </View>
-          
+
           <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+            <Text style={styles.forgotPasswordText}>Bạn có mật khẩu không?</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]} 
+
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={isLoading}
           >
             <Text style={styles.buttonText}>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.orText}>HOẶC</Text>
-          
+
           <View style={styles.socialButtonsContainer}>
             <TouchableOpacity style={styles.socialButton}>
-              <Image 
-                source={require('../../assets/icon.png')}
-                style={styles.socialIcon}
-              />
+              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <Image 
-                source={require('../../assets/icon.png')}
-                style={styles.socialIcon}
-              />
+              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Chưa có tài khoản? </Text>
+            <Text style={styles.registerText}>Bạn chưa có tài khoản? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>Đăng ký ngay</Text>
+              <Text style={styles.registerLink}>Đăng ký ngay</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -151,39 +113,13 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 30,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 40,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-  },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8B4513',
-    marginTop: 10,
-  },
-  formContainer: {
-    paddingHorizontal: 30,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    color: '#333',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContainer: { flexGrow: 1, paddingBottom: 30 },
+  logoContainer: { alignItems: 'center', marginTop: 60, marginBottom: 40 },
+  logo: { width: 120, height: 120, resizeMode: 'contain' },
+  appTitle: { fontSize: 24, fontWeight: 'bold', color: '#8B4513', marginTop: 10 },
+  formContainer: { paddingHorizontal: 30 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 30, color: '#333' },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -191,25 +127,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDD',
     marginBottom: 20,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-  },
-  passwordToggle: {
-    padding: 10,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 30,
-  },
-  forgotPasswordText: {
-    color: '#8B4513',
-    fontSize: 14,
-  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, height: 50, fontSize: 16 },
+  passwordToggle: { padding: 10 },
+  forgotPassword: { alignSelf: 'flex-end', marginBottom: 30 },
+  forgotPasswordText: { color: '#8B4513', fontSize: 14 },
   button: {
     backgroundColor: '#8B4513',
     paddingVertical: 15,
@@ -217,19 +139,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  buttonDisabled: {
-    backgroundColor: '#A9A9A9',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  orText: {
-    textAlign: 'center',
-    color: '#999',
-    marginVertical: 20,
-  },
+  buttonDisabled: { backgroundColor: '#A9A9A9' },
+  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  orText: { textAlign: 'center', color: '#999', marginVertical: 20 },
   socialButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -244,24 +156,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 10,
   },
-  socialIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  registerText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  registerLink: {
-    color: '#8B4513',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  socialIcon: { width: 30, height: 30, resizeMode: 'contain' },
+  registerContainer: { flexDirection: 'row', justifyContent: 'center' },
+  registerText: { color: '#666', fontSize: 14 },
+  registerLink: { color: '#8B4513', fontSize: 14, fontWeight: 'bold' },
 });
 
 export default LoginScreen;

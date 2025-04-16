@@ -1,17 +1,6 @@
 // src/screens/auth/RegisterScreen.js
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform,
-  Alert 
-} from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const RegisterScreen = ({ navigation }) => {
@@ -25,34 +14,30 @@ const RegisterScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Validate inputs
+    // Validate input data
     if (!fullName || !email || !phone || !password || !confirmPassword) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu không khớp');
       return;
     }
 
     setIsLoading(true);
-
     try {
       // In a real app, you would call your API here
-      // For demo purposes, we'll simulate registration
-
-      // Simulate API call delay
+      // For demo purposes, we simulate the registration process
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       Alert.alert(
-        'Đăng ký thành công', 
+        'Đăng ký thành công',
         'Bạn đã đăng ký tài khoản thành công',
         [
-          { 
-            text: 'Đăng nhập ngay', 
-            onPress: () => navigation.navigate('Login') 
-          }
+          {
+            text: 'Đăng nhập ngay',
+            onPress: () => navigation.navigate('Login'),
+          },
         ]
       );
     } catch (error) {
@@ -63,16 +48,10 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Đăng ký</Text>
@@ -89,7 +68,6 @@ const RegisterScreen = ({ navigation }) => {
               onChangeText={setFullName}
             />
           </View>
-          
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -101,7 +79,6 @@ const RegisterScreen = ({ navigation }) => {
               autoCapitalize="none"
             />
           </View>
-          
           <View style={styles.inputContainer}>
             <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -112,7 +89,6 @@ const RegisterScreen = ({ navigation }) => {
               keyboardType="phone-pad"
             />
           </View>
-          
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -122,14 +98,10 @@ const RegisterScreen = ({ navigation }) => {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity 
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.passwordToggle}
-            >
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
               <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
             </TouchableOpacity>
           </View>
-          
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
@@ -139,41 +111,28 @@ const RegisterScreen = ({ navigation }) => {
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
             />
-            <TouchableOpacity 
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={styles.passwordToggle}
-            >
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.passwordToggle}>
               <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]} 
-            onPress={handleRegister}
-            disabled={isLoading}
-          >
+
+          <TouchableOpacity style={[styles.button, isLoading && styles.buttonDisabled]} onPress={handleRegister} disabled={isLoading}>
             <Text style={styles.buttonText}>{isLoading ? 'Đang đăng ký...' : 'Đăng ký'}</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.orText}>HOẶC</Text>
-          
+
           <View style={styles.socialButtonsContainer}>
             <TouchableOpacity style={styles.socialButton}>
-              <Image 
-                source={require('../../assets/icon.png')}
-                style={styles.socialIcon}
-              />
+              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <Image 
-                source={require('../../assets/icon.png')}
-                style={styles.socialIcon}
-              />
+              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Đã có tài khoản? </Text>
+            <Text style={styles.loginText}>Bạn đã có tài khoản? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.loginLink}>Đăng nhập ngay</Text>
             </TouchableOpacity>
