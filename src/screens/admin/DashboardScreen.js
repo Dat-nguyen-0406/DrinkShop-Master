@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
-  
+import { useAuth } from '../../context/AuthContext';  
+
 import { 
   View, 
   Text, 
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { clearAllStorage } from '../../utils/storage'; // ✅ Thêm dòng này
-import LoginScreen from '../auth/LoginScreen';
+
 
 // Mock data - replace with API calls in production
 const mockStats = {
@@ -40,7 +41,7 @@ const mockStats = {
 const DashboardScreen = ({ navigation }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const { logout } = useAuth();
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -62,13 +63,13 @@ const DashboardScreen = ({ navigation }) => {
     if (Platform.OS === 'web') {
       const confirm = window.confirm('Bạn có chắc muốn đăng xuất?');
       if (confirm) {
+        const success = await logout();
+        if (!success) {
+          // Show error message if logout failed
+          alert('Đăng xuất thất bại. Vui lòng thử lại.');
+        }
+        // Ensure token is cleared manually as fallback
         await clearAllStorage();
-        console.log("Token đã được xóa.");
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }]
-        });
-        
       }
     } else {
       Alert.alert('Xác nhận', 'Bạn có chắc muốn đăng xuất?', [
@@ -77,14 +78,13 @@ const DashboardScreen = ({ navigation }) => {
           text: 'Đăng xuất',
           style: 'destructive',
           onPress: async () => {
-          await clearAllStorage();
-          console.log("Token đã được xóa.");
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }]
-          });
-          
-          console.log("Chuyển đến màn hình đăng nhập.");
+            const success = await logout();
+            if (!success) {
+              // Show error message if logout failed
+              Alert.alert('Lỗi', 'Đăng xuất thất bại. Vui lòng thử lại.');
+            }
+            // Ensure token is cleared manually as fallback
+            await clearAllStorage();
           },
         },
       ]);

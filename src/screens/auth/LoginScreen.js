@@ -47,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
           <Image source={require('../../assets/images/icon.png')} style={styles.logo} />
-          <Text style={styles.appTitle}>Café</Text>
+          <Text style={styles.appTitle}>Drink Shop</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -79,7 +79,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Bạn có mật khẩu không?</Text>
+            <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

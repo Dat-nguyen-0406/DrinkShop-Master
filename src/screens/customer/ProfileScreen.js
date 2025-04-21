@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext'; // Đường dẫn này phải đúng với cấu trúc thư mục của bạn
 
+// Đường dẫn này phải đúng với cấu trúc thư mục của bạn
 const ProfileScreen = ({ navigation }) => {
+  const { logout } = useAuth();
   const [userData, setUserData] = useState({
     name: 'Người dùng',
     email: 'email@example.com',
@@ -13,7 +16,7 @@ const ProfileScreen = ({ navigation }) => {
   });
   const [showBadge, setShowBadge] = useState(true);
   const [showPromoModal, setShowPromoModal] = useState(false);
-
+  
   useEffect(() => {
     // Lấy thông tin người dùng từ AsyncStorage khi component mount
     const fetchUserData = async () => {
@@ -37,8 +40,9 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleLogout = async () => {
     try {
+      await logout(); 
+      navigation.replace('Login'); 
       await AsyncStorage.clear();
-      navigation.replace('Login');
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại sau.');
     }

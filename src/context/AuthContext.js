@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getTokenAndRole, saveToken, clearToken } from '../utils/storage';
+import { getTokenAndRole, saveToken, clearAllStorage } from '../utils/storage';
 
 const AuthContext = createContext();
 
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.log('Error checking login status:', error);
-      await clearToken();
+      await clearAllStorage();
       setIsLoggedIn(false);
       setUserRole(null);
     } finally {
@@ -40,9 +40,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await clearToken();
-    setIsLoggedIn(false);
-    setUserRole(null);
+    try {
+      await clearAllStorage();
+      setIsLoggedIn(false);
+      setUserRole(null);
+      return true; // Add this to indicate success
+    } catch (error) {
+      console.error("Logout error:", error);
+      return false; // Add this to indicate failure
+    }
   };
 
   return (
