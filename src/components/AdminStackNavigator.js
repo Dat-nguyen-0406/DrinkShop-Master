@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { View, Text } from 'react-native';
 
 // Dashboard Screens
 import DashboardScreen from '../screens/admin/DashboardScreen';
@@ -12,8 +13,11 @@ import EditCategoryScreen from '../screens/admin/EditCategoryScreen';
 
 // Drinks Screens
 import DrinksScreen from '../screens/admin/DrinksScreen';
-import AddDrinkScreen from '../screens/admin/AddDrinkScreen';
-import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
+//import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
+const AddDrinkScreen = () => <View><Text>Test Add Drink</Text></View>;
+
+//import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
+const  EditDrinkScreen = () => <View><Text>Test Add Drink</Text></View>;
 import DrinkDetailsScreen from '../screens/admin/DrinkDetailsScreen';
 
 // Orders Screens
@@ -24,6 +28,7 @@ const DashboardStack = createStackNavigator();
 const CategoriesStack = createStackNavigator();
 const DrinksStack = createStackNavigator();
 const OrdersStack = createStackNavigator();
+
 
 export const DashboardStackNavigator = () => {
   return (
@@ -40,9 +45,11 @@ export const DashboardStackNavigator = () => {
     >
       <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} options={{ title: 'Trang chủ Admin' }} />
       <DashboardStack.Screen name="RevenueStats" component={RevenueStatsScreen} options={{ title: 'Thống kê doanh thu' }} />
+       
     </DashboardStack.Navigator>
   );
 };
+
 
 export const CategoriesStackNavigator = () => {
   return (

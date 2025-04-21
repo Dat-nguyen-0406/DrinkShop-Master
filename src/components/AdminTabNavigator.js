@@ -10,6 +10,7 @@ import {
   OrdersStackNavigator 
 } from './AdminStackNavigator';
 
+
 const Tab = createBottomTabNavigator();
 
 const AdminTabNavigator = () => {

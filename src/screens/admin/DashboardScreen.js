@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Platform } from 'react-native';
+  
 import { 
   View, 
   Text, 
@@ -9,16 +11,17 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { clearToken } from '../../utils/storage'; // ✅ Thêm dòng này
+import { clearAllStorage } from '../../utils/storage'; // ✅ Thêm dòng này
+import LoginScreen from '../auth/LoginScreen';
 
 // Mock data - replace with API calls in production
 const mockStats = {
   todayOrders: 42,
   todayRevenue: 4250000,
   weeklyOrders: 286,
-  weeklyRevenue: 27850000,
+  weeklyRevenue: 2785000,
   monthlyOrders: 1245,
-  monthlyRevenue: 134500000,
+  monthlyRevenue: 3450000,
   popularDrinks: [
     { id: '1', name: 'Cà phê đen', quantity: 145 },
     { id: '2', name: 'Trà sữa trân châu', quantity: 112 },
@@ -55,12 +58,17 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (Platform.OS === 'web') {
       const confirm = window.confirm('Bạn có chắc muốn đăng xuất?');
       if (confirm) {
-        clearToken();
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        await clearAllStorage();
+        console.log("Token đã được xóa.");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }]
+        });
+        
       }
     } else {
       Alert.alert('Xác nhận', 'Bạn có chắc muốn đăng xuất?', [
@@ -69,8 +77,14 @@ const DashboardScreen = ({ navigation }) => {
           text: 'Đăng xuất',
           style: 'destructive',
           onPress: async () => {
-            await clearToken();
-            navigation.replace({ index: 0, routes: [{ name: 'Login' }] });
+          await clearAllStorage();
+          console.log("Token đã được xóa.");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }]
+          });
+          
+          console.log("Chuyển đến màn hình đăng nhập.");
           },
         },
       ]);
@@ -97,6 +111,7 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -113,9 +128,11 @@ const DashboardScreen = ({ navigation }) => {
           <TouchableOpacity onPress={fetchDashboardData} style={{ marginRight: 16 }}>
             <Ionicons name="refresh" size={24} color="#8B0000" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color="#8B0000" />
+
+         <TouchableOpacity onPress={handleLogout} >
+         <Ionicons name="log-out-outline" size={24} color="#8B0000" />
           </TouchableOpacity>
+          
         </View>
       </View>
 

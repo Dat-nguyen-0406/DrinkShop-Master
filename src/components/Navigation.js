@@ -1,10 +1,9 @@
 // src/components/Navigation.js
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { getTokenAndRole, clearToken } from '../utils/storage';
-import { Platform, Text, View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -26,30 +25,7 @@ const LoadingScreen = () => (
 );
 
 const Navigation = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const { token, role } = await getTokenAndRole();
-        console.log('Token:', token, 'Role:', role, 'Platform:', Platform.OS);
-        if (token) {
-          setIsLoggedIn(true);
-          setUserRole(role);
-        }
-      } catch (error) {
-        console.log('Error checking login status:', error);
-        // In case of an error, clear any potentially corrupted tokens
-        await clearToken();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    checkLoginStatus();
-  }, []);
+  const { isLoggedIn, userRole, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;

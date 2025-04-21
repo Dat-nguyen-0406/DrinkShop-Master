@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { saveToken } from '../../utils/storage';
+import { useAuth } from '../../context/AuthContext';
+ // Đường dẫn này phải đúng với cấu trúc thư mục c
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
+  const { login } = useAuth();
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Lỗi', 'Vui lòng nhập email và mật khẩu');
@@ -28,11 +29,11 @@ const LoginScreen = ({ navigation }) => {
         throw new Error('Thông tin đăng nhập không hợp lệ');
       }
 
-      await saveToken('demo-token', userRole);
+      // Sử dụng hàm login từ AuthContext
+      await login('demo-token', userRole);
       console.log('Đăng nhập thành công với vai trò:', userRole);
-
-      // ✅ Sử dụng replace thay vì reset để tránh lỗi
-      navigation.replace(userRole === 'admin' ? 'AdminHome' : 'CustomerHome');
+      
+      // Không cần điều hướng thủ công vì Navigation.js sẽ phản ứng với thay đổi từ AuthContext
 
     } catch (error) {
       Alert.alert('Đăng nhập thất bại', 'Email hoặc mật khẩu không chính xác');
@@ -46,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
           <Image source={require('../../assets/images/icon.png')} style={styles.logo} />
-          <Text style={styles.appTitle}>Coffee Shop</Text>
+          <Text style={styles.appTitle}>Café</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -93,10 +94,10 @@ const LoginScreen = ({ navigation }) => {
 
           <View style={styles.socialButtonsContainer}>
             <TouchableOpacity style={styles.socialButton}>
-              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
+              <Image source={require('../../assets/images/face.png')} style={styles.socialIcon} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <Image source={require('../../assets/images/icon.png')} style={styles.socialIcon} />
+              <Image source={require('../../assets/images/google.png')} style={styles.socialIcon} />
             </TouchableOpacity>
           </View>
 

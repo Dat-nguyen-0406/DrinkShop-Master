@@ -20,7 +20,7 @@ const mockDrinks = [
     name: 'Cà phê đen', 
     category: 'Cà phê',
     price: 25000,
-    image: '../../assets/images/default.png',
+    image: '../../assets/images/icon.png',
     active: true 
   },
   { 
