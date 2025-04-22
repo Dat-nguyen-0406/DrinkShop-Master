@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
- // Đường dẫn này phải đúng với cấu trúc thư mục c
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import app from "../../sever/firebase";
+
+
+ // Đường dẫn này phải đúng vớ
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -18,27 +22,61 @@ const LoginScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // **Firebase Authentication**
+      const auth = getAuth(app);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      let userRole = 'customer';
-      if (email === 'admin' && password === 'admin') {
-        userRole = 'admin';
-      } else if (email === 'user' && password === 'user') {
-        userRole = 'customer';
-      } else {
-        throw new Error('Thông tin đăng nhập không hợp lệ');
-      }
+      // **Lấy vai trò người dùng (ví dụ, từ Firestore)**
+      const userRole = await getUserRole(email);
 
-      // Sử dụng hàm login từ AuthContext
-      await login('demo-token', userRole);
+      // **Gọi hàm login từ AuthContext**
+      await login(user.refreshToken, userRole);
+
       console.log('Đăng nhập thành công với vai trò:', userRole);
-      
-      // Không cần điều hướng thủ công vì Navigation.js sẽ phản ứng với thay đổi từ AuthContext
 
     } catch (error) {
-      Alert.alert('Đăng nhập thất bại', 'Email hoặc mật khẩu không chính xác');
+      console.error("Lỗi đăng nhập:", error.code, error.message);
+      let errorMessage = 'Đã xảy ra lỗi trong quá trình đăng nhập.';
+
+      switch (error.code) {
+        case 'auth/invalid-email':
+          errorMessage = 'Địa chỉ email không hợp lệ.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'Tài khoản người dùng đã bị vô hiệu hóa.';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = 'Không tìm thấy người dùng với email này.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Mật khẩu không chính xác.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Đăng nhập thất bại do quá nhiều lần thử. Vui lòng thử lại sau.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Lỗi mạng. Vui lòng kiểm tra kết nối Internet của bạn.';
+          break;
+        default:
+          errorMessage = 'Email hoặc mật khẩu không chính xác.';
+          break;
+      }
+      Alert.alert('Đăng nhập thất bại', errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // **Hàm giả định để lấy vai trò người dùng (cần triển khai thật)**
+  const getUserRole = async (email) => {
+    // **Logic này cần được thay thế bằng code lấy vai trò từ CSDL của bạn**
+    // **Ví dụ: sử dụng Firestore, Realtime Database, v.v.**
+    // **Code mẫu này chỉ là ví dụ và KHÔNG an toàn để dùng trong production**
+    if (email === 'admin@gmail.com') {
+      return 'admin';
+    } else {
+      return 'customer';
     }
   };
 

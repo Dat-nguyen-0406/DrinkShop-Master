@@ -41,7 +41,6 @@ const ProfileScreen = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await logout(); 
-      navigation.replace('Login'); 
       await AsyncStorage.clear();
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại sau.');

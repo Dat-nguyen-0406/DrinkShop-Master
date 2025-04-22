@@ -2,6 +2,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import app from "../../sever/firebase";
+
+
 
 const RegisterScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
@@ -12,6 +16,7 @@ const RegisterScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
 
   const handleRegister = async () => {
     // Validate input data
@@ -26,8 +31,10 @@ const RegisterScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      // In a real app, you would call your API here
-      // For demo purposes, we simulate the registration process
+      // **Firebase Authentication: Tạo người dùng mới**
+      const auth = getAuth(app);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       Alert.alert(
