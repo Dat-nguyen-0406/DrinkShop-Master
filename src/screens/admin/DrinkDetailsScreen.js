@@ -23,7 +23,7 @@ const DrinkDetailsScreen = ({ route, navigation }) => {
           price: '29,000 đ',
           description: 'Cà phê đậm đà hòa quyện với sữa đặc và đá, tạo nên hương vị thơm ngon khó cưỡng.',
           category: 'Cà phê',
-          imageUrl: 'https://via.placeholder.com/400',
+          imageUrl: require('../../assets/images/cafe.jpg'),
           ingredients: ['Cà phê nguyên chất', 'Sữa đặc', 'Đá'],
           nutritionFacts: {
             calories: '120 kcal',
@@ -73,7 +73,8 @@ const DrinkDetailsScreen = ({ route, navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <Image source={{ uri: drink.imageUrl }} style={styles.drinkImage} />
+     <Image source={drink.imageUrl} style={styles.drinkImage} />
+
       
       <View style={styles.header}>
         <View>

@@ -17,31 +17,31 @@ import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
   const navigation = useNavigation();
   const [categories, setCategories] = useState([
-    { id: '1', name: 'Cà phê', image: require('../../assets/images/icon.png') },
-    { id: '2', name: 'Trà sữa', image: require('../../assets/images/icon.png') },
-    { id: '3', name: 'Nước ép', image: require('../../assets/images/icon.png') },
-    { id: '4', name: 'Đá xay', image: require('../../assets/images/icon.png') },
+    { id: '1', name: 'Cà phê', image: require('../../assets/images/cafe.jpg') },
+    { id: '2', name: 'Trà sữa', image: require('../../assets/images/trasua.jpg') },
+    { id: '3', name: 'Nước ép', image: require('../../assets/images/nuocep.jpg') },
+    { id: '4', name: 'Đá xay', image: require('../../assets/images/sinhto.jpg') },
   ]);
   
   const [featuredDrinks, setFeaturedDrinks] = useState([
     { 
       id: '1', 
       name: 'Cà phê sữa đá', 
-      image: require('../../assets/images/icon.png'),
+      image: require('../../assets/images/cafe.jpg'),
       price: 29000,
       rating: 4.8
     },
     { 
       id: '2', 
       name: 'Trà sữa trân châu', 
-      image: require('../../assets/images/icon.png'),
+      image: require('../../assets/images/trasua.jpg'),
       price: 35000,
       rating: 4.6
     },
     { 
       id: '3', 
       name: 'Nước cam tươi', 
-      image: require('../../assets/images/icon.png'),
+      image: require('../../assets/images/nuocep.jpg'),
       price: 32000,
       rating: 4.5
     },
@@ -49,25 +49,7 @@ const HomeScreen = () => {
   
   const [loading, setLoading] = useState(false);
   
-  // For actual implementation, you would fetch data from API
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     setLoading(true);
-  //     try {
-  //       const categoryResponse = await axios.get(`${API_URL}/categories`);
-  //       setCategories(categoryResponse.data);
-  //       
-  //       const featuredResponse = await axios.get(`${API_URL}/drinks/featured`);
-  //       setFeaturedDrinks(featuredResponse.data);
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   
-  //   fetchData();
-  // }, []);
+
 
   const formatPrice = (price) => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
@@ -115,7 +97,7 @@ const HomeScreen = () => {
       {/* Banner Section */}
       <View style={styles.bannerContainer}>
         <Image 
-          source={require('../../assets/images/icon.png')} 
+          source={require('../../assets/images/cafe.jpg')} 
           style={styles.bannerImage}
         />
         <View style={styles.bannerOverlay}>
@@ -165,7 +147,7 @@ const HomeScreen = () => {
         </View>
         <TouchableOpacity style={styles.promotionCard}>
           <Image 
-            source={require('../../assets/images/icon.png')} 
+            source={require('../../assets/images/nuocep.jpg')} 
             style={styles.promotionImage}
           />
           <View style={styles.promotionContent}>

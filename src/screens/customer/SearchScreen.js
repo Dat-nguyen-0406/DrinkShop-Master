@@ -94,15 +94,15 @@ const mockDrinks = [
 const getImageSource = (imageName) => {
   switch (imageName) {
     case 'coffee':
-      return require('../../assets/images/icon.png');
+      return require('../../assets/images/cafe.jpg');
     case 'tea':
       return require('../../assets/images/default.png');
     case 'juice':
-      return require('../../assets/images/default.png');
+      return require('../../assets/images/nuocep.jpg');
     case 'smoothie':
-      return require('../../assets/images/default.png');
+      return require('../../assets/images/sinhto.jpg');
     default:
-      return require('../../assets/images/default.png');
+      return require('../../assets/images/trasua.jpg');
   }
 };
 

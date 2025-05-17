@@ -45,7 +45,7 @@ const DrinkDetailScreen = () => {
           const mockDrink = {
             id: drinkId,
             name: 'Cà phê sữa đá',
-            image: require('../../assets/images/icon.png'),
+            image: require('../../assets/images/cafe.jpg'),
             price: 29000,
             rating: 4.8,
             description: 'Cà phê sữa đá là thức uống truyền thống của Việt Nam, được làm từ cà phê nguyên chất pha với sữa đặc và đá.',

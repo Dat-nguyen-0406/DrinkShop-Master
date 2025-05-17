@@ -13,11 +13,11 @@ import EditCategoryScreen from '../screens/admin/EditCategoryScreen';
 
 // Drinks Screens
 import DrinksScreen from '../screens/admin/DrinksScreen';
-//import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
-const AddDrinkScreen = () => <View><Text>Test Add Drink</Text></View>;
+import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
 
-//import EditDrinkScreen from '../screens/admin/EditDrinkScreen';
-const  EditDrinkScreen = () => <View><Text>Test Add Drink</Text></View>;
+
+import AddDrinkScreen from '../screens/admin/AddDrinkScreen';
+
 import DrinkDetailsScreen from '../screens/admin/DrinkDetailsScreen';
 
 // Orders Screens

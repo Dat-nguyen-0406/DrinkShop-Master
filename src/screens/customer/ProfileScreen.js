@@ -10,9 +10,7 @@ import { useAuth } from '../../context/AuthContext'; // Đường dẫn này ph�
 const ProfileScreen = ({ navigation }) => {
   const { logout } = useAuth();
   const [userData, setUserData] = useState({
-    name: 'Người dùng',
-    email: 'email@example.com',
-    phone: '0123456789',
+    
   });
   const [showBadge, setShowBadge] = useState(true);
   const [showPromoModal, setShowPromoModal] = useState(false);

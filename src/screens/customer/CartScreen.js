@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 const getImageSource = (imageName) => {
   switch (imageName) {
     case 'coffee':
-      return require('../../assets/images/icon.png');
+      return require('../../assets/images/cafe.jpg');
     case 'tea':
       return require('../../assets/images/default.png');
     default:
@@ -160,7 +160,7 @@ const CartScreen = ({ navigation }) => {
             <Text style={styles.empty}>Giỏ hàng của bạn đang trống</Text>
             <TouchableOpacity 
               style={styles.continueShopping}
-              onPress={() => navigation.navigate('Menu')}
+              onPress={() => navigation.navigate('HomeTab')}
             >
               <Text style={styles.continueShoppingText}>Tiếp tục mua sắm</Text>
             </TouchableOpacity>

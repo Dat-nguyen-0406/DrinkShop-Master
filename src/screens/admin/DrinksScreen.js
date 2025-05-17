@@ -20,7 +20,7 @@ const mockDrinks = [
     name: 'Cà phê đen', 
     category: 'Cà phê',
     price: 25000,
-    image: '../../assets/images/icon.png',
+    image: require('../../assets/images/cafe.jpg'),
     active: true 
   },
   { 
@@ -28,7 +28,7 @@ const mockDrinks = [
     name: 'Trà sữa trân châu', 
     category: 'Trà sữa',
     price: 35000,
-    image: '../../assets/images/default.png',
+    image: require('../../assets/images/trasua.jpg'),
     active: true 
   },
   { 
@@ -36,7 +36,7 @@ const mockDrinks = [
     name: 'Nước ép cam', 
     category: 'Nước ép',
     price: 30000,
-    image: '../../assets/images/default.png',
+    image: require('../../assets/images/nuocep.jpg'),
     active: true 
   },
   { 
@@ -44,7 +44,7 @@ const mockDrinks = [
     name: 'Sinh tố xoài', 
     category: 'Sinh tố',
     price: 32000,
-    image: '../../assets/images/default.png',
+    image: require('../../assets/images/sinhto.jpg'),
     active: true 
   },
 ];
@@ -117,7 +117,7 @@ const DrinksScreen = ({ navigation }) => {
       style={styles.drinkItem}
       onPress={() => navigation.navigate('DrinkDetails', { drink: item })}
     >
-      <Image source={{ uri: item.image }} style={styles.drinkImage} />
+     <Image source={item.image} style={styles.drinkImage} />
       <View style={styles.drinkInfo}>
         <Text style={styles.drinkName}>{item.name}</Text>
         <Text style={styles.drinkCategory}>{item.category}</Text>
