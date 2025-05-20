@@ -9,9 +9,7 @@ import { useAuth } from '../../context/AuthContext'; // Đường dẫn này ph�
 // Đường dẫn này phải đúng với cấu trúc thư mục của bạn
 const ProfileScreen = ({ navigation }) => {
   const { logout } = useAuth();
-  const [userData, setUserData] = useState({
-    
-  });
+  const [userData, setUserData] = useState({});
   const [showBadge, setShowBadge] = useState(true);
   const [showPromoModal, setShowPromoModal] = useState(false);
   
@@ -82,9 +80,6 @@ const ProfileScreen = ({ navigation }) => {
             <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.userName}>{userData.name}</Text>
-        <Text style={styles.userEmail}>{userData.email}</Text>
-        <Text style={styles.userPhone}>{userData.phone}</Text>
         
         <TouchableOpacity style={styles.loyaltyCard} onPress={showPromotion}>
           <View style={styles.loyaltyCardContent}>

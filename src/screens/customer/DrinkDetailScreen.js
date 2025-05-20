@@ -1,136 +1,172 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
   ActivityIndicator,
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-//import axios from 'axios';
-//import { API_URL } from '../../utils/config';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+
+// Mock data for a single drink, replace with actual API call later
+const mockDrinksData = [
+  {
+    id: '1',
+    name: 'Cà Phê Sữa Đá',
+    price: 35000,
+    image: 'coffee', // Use image name to resolve path in getImageSource
+    rating: 4.5,
+    reviewsCount: 120,
+    description: 'Cà phê đậm đà pha với sữa đặc và đá, mang lại hương vị truyền thống của Việt Nam. Thức uống lý tưởng để bắt đầu ngày mới hoặc nạp năng lượng buổi chiều.',
+    sizes: ['S', 'M', 'L'],
+    iceOptions: ['0%', '30%', '50%', '70%', '100%'],
+    sugarOptions: ['0%', '30%', '50%', '70%', '100%'],
+  },
+  {
+    id: '2',
+    name: 'Trà Sữa Trân Châu Đường Đen',
+    price: 45000,
+    image: 'tea', // Use image name
+    rating: 4.8,
+    reviewsCount: 95,
+    description: 'Trà sữa thơm lừng với vị ngọt dịu của đường đen và trân châu dai mềm. Một lựa lý tưởng cho những ai yêu thích hương vị trà sữa đậm đà.',
+    sizes: ['M', 'L'],
+    iceOptions: ['0%', '50%', '70%', '100%'],
+    sugarOptions: ['0%', '50%', '70%', '100%'],
+  },
+  {
+    id: '3',
+    name: 'Nước Ép Cam Tươi',
+    price: 40000,
+    image: 'default', // Use image name
+    rating: 4.2,
+    reviewsCount: 78,
+    description: 'Nước cam tươi 100% nguyên chất, giàu vitamin C. Giúp tăng cường sức đề kháng và mang lại cảm giác sảng khoái.',
+    sizes: ['M', 'L'],
+    iceOptions: ['0%', '50%', '70%', '100%'],
+    sugarOptions: ['0%', '100%'],
+  },
+  // Add more mock drinks as needed
+];
+
+// Re-using getImageSource from CartScreen for consistency
+const getImageSource = (imageName) => {
+  switch (imageName) {
+    case 'coffee':
+      return require('../../assets/images/cafe.jpg');
+    case 'tea':
+      return require('../../assets/images/trasua.jpg'); // Assuming you have a trasua.jpg for tea
+    default:
+      return require('../../assets/images/default.png');
+  }
+};
+
 
 const DrinkDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { drinkId } = route.params;
-  
+
   const [drink, setDrink] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('M');
-  const [selectedIce, setSelectedIce] = useState('100%');
-  const [selectedSugar, setSelectedSugar] = useState('100%');
+  const [selectedSize, setSelectedSize] = useState('M'); // Default size
+  const [selectedIce, setSelectedIce] = useState('100%'); // Default ice
+  const [selectedSugar, setSelectedSugar] = useState('100%'); // Default sugar
   const [reviews, setReviews] = useState([
     { id: '1', user: 'Nguyễn Văn A', rating: 5, comment: 'Thức uống ngon, ship nhanh!', date: '20/03/2023' },
     { id: '2', user: 'Trần Thị B', rating: 4, comment: 'Đồ uống ngon, nhưng đá hơi nhiều.', date: '15/03/2023' },
-    { id: '3', user: 'Lê Văn C', rating: 5, comment: 'Tuyệt vời, sẽ mua lại!', date: '10/03/2023' },
+    { id: '3', user: 'Lê Văn C', rating: 5, comment: 'Tuyệt vời, sẽ ủng hộ dài dài.', date: '10/03/2023' },
   ]);
-  
-  // Mock data for development
+
+
   useEffect(() => {
+    // Simulate fetching drink data
     const fetchDrink = async () => {
       setLoading(true);
-      try {
-        // In a real app, you would fetch from API
-        // const response = await axios.get(`${API_URL}/drinks/${drinkId}`);
-        // setDrink(response.data);
-        
-        // Mock data
-        setTimeout(() => {
-          const mockDrink = {
-            id: drinkId,
-            name: 'Cà phê sữa đá',
-            image: require('../../assets/images/cafe.jpg'),
-            price: 29000,
-            rating: 4.8,
-            description: 'Cà phê sữa đá là thức uống truyền thống của Việt Nam, được làm từ cà phê nguyên chất pha với sữa đặc và đá.',
-            ingredients: ['Cà phê robusta', 'Sữa đặc', 'Đá viên'],
-            sizes: [
-              { name: 'S', price: 29000 },
-              { name: 'M', price: 35000 },
-              { name: 'L', price: 40000 },
-            ],
-            iceOptions: ['0%', '30%', '50%', '70%', '100%'],
-            sugarOptions: ['0%', '30%', '50%', '70%', '100%'],
-          };
-          
-          setDrink(mockDrink);
-          setLoading(false);
-        }, 500);
-      } catch (error) {
-        console.error('Error fetching drink details:', error);
-        setLoading(false);
+      // In a real app, you'd make an API call here:
+      // const response = await axios.get(`${API_URL}/drinks/${drinkId}`);
+      // setDrink(response.data);
+      const foundDrink = mockDrinksData.find(d => d.id === drinkId);
+      if (foundDrink) {
+        setDrink(foundDrink);
+        // Set default options if available
+        setSelectedSize(foundDrink.sizes && foundDrink.sizes.length > 0 ? foundDrink.sizes[0] : 'M');
+        setSelectedIce(foundDrink.iceOptions && foundDrink.iceOptions.length > 0 ? foundDrink.iceOptions[foundDrink.iceOptions.length - 1] : '100%');
+        setSelectedSugar(foundDrink.sugarOptions && foundDrink.sugarOptions.length > 0 ? foundDrink.sugarOptions[foundDrink.sugarOptions.length - 1] : '100%');
+      } else {
+        Alert.alert('Lỗi', 'Không tìm thấy đồ uống.');
+        navigation.goBack(); // Go back if drink not found
       }
+      setLoading(false);
     };
-    
+
     fetchDrink();
   }, [drinkId]);
 
-  const handleQuantityChange = (value) => {
-    const newQuantity = quantity + value;
-    if (newQuantity >= 1 && newQuantity <= 10) {
-      setQuantity(newQuantity);
+  const handleDecreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
     }
   };
 
-  const handleSizeChange = (size) => {
-    setSelectedSize(size);
+  const handleIncreaseQuantity = () => {
+    setQuantity(quantity + 1);
   };
 
-  const handleIceChange = (ice) => {
-    setSelectedIce(ice);
-  };
+  const handleAddToCart = async () => {
+    if (!drink) {
+      Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
+      return;
+    }
 
-  const handleSugarChange = (sugar) => {
-    setSelectedSugar(sugar);
-  };
-
-  const getCurrentPrice = () => {
-    if (!drink) return 0;
-    const sizePrice = drink.sizes.find(size => size.name === selectedSize)?.price || drink.price;
-    return sizePrice;
-  };
-
-  const getTotalPrice = () => {
-    return getCurrentPrice() * quantity;
-  };
-
-  const formatPrice = (price) => {
-    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
-  };
-
-  const addToCart = () => {
-    const cartItem = {
-      id: drink.id,
+    const newItem = {
+      id: `${drink.id}-${selectedSize}-${selectedIce}-${selectedSugar}`, // Unique ID for item with options
+      drinkId: drink.id, // Original drink ID
       name: drink.name,
-      price: getCurrentPrice(),
+      price: drink.price,
       quantity: quantity,
+      image: drink.image, // Use the image name for consistency
       size: selectedSize,
       ice: selectedIce,
       sugar: selectedSugar,
-      totalPrice: getTotalPrice(),
-      image: drink.image,
     };
-    
-    // Here you would add the item to cart in your state management solution
-    console.log('Adding to cart:', cartItem);
-    
-    Alert.alert(
-      'Thêm vào giỏ hàng',
-      `Đã thêm ${quantity} ${drink.name} vào giỏ hàng`,
-      [
-        { text: 'Tiếp tục mua hàng', style: 'cancel' },
-        { text: 'Xem giỏ hàng', onPress: () => navigation.navigate('CartTab') }
-      ]
-    );
+
+    try {
+      const existingCartString = await AsyncStorage.getItem('cart');
+      let cart = existingCartString ? JSON.parse(existingCartString) : [];
+
+      const existingItemIndex = cart.findIndex(item =>
+        item.drinkId === newItem.drinkId &&
+        item.size === newItem.size &&
+        item.ice === newItem.ice &&
+        item.sugar === newItem.sugar
+      );
+
+      if (existingItemIndex > -1) {
+        // Item with same options exists, update quantity
+        cart[existingItemIndex].quantity += newItem.quantity;
+      } else {
+        // Add new item to cart
+        cart.push(newItem);
+      }
+
+      await AsyncStorage.setItem('cart', JSON.stringify(cart));
+      Alert.alert('Thông báo', `Đã thêm ${quantity} x ${drink.name} vào giỏ hàng.`);
+      navigation.navigate('CartTab'); // Navigate to Cart screen after adding
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể thêm sản phẩm vào giỏ hàng.');
+      console.error("Error adding to cart:", e);
+    }
   };
 
-  if (loading) {
+
+  if (loading || !drink) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8B4513" />
@@ -138,353 +174,326 @@ const DrinkDetailScreen = () => {
     );
   }
 
-  if (!drink) {
-    return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="cafe-outline" size={64} color="#CCC" />
-        <Text style={styles.errorText}>Không tìm thấy thông tin đồ uống</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container}>
-      {/* Drink Image */}
-      <Image source={drink.image} style={styles.drinkImage} />
-      
-      {/* Drink Info */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.drinkName}>{drink.name}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.ratingText}>{drink.rating} (124 đánh giá)</Text>
-        </View>
-        <Text style={styles.drinkPrice}>{formatPrice(getCurrentPrice())}</Text>
-        <Text style={styles.description}>{drink.description}</Text>
-      </View>
-      
-      {/* Ingredients */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Thành phần</Text>
-        <View style={styles.ingredientsContainer}>
-          {drink.ingredients.map((ingredient, index) => (
-            <View key={index} style={styles.ingredientItem}>
-              <Ionicons name="checkmark-circle" size={16} color="#8B4513" />
-              <Text style={styles.ingredientText}>{ingredient}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      
-      {/* Size Selection */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Kích cỡ</Text>
-        <View style={styles.optionsContainer}>
-          {drink.sizes.map((size) => (
-            <TouchableOpacity
-              key={size.name}
-              style={[
-                styles.optionButton,
-                selectedSize === size.name && styles.optionButtonActive
-              ]}
-              onPress={() => handleSizeChange(size.name)}
-            >
-              <Text 
-                style={[
-                  styles.optionText,
-                  selectedSize === size.name && styles.optionTextActive
-                ]}
-              >
-                {size.name}
-              </Text>
-              <Text 
-                style={[
-                  styles.optionPriceText,
-                  selectedSize === size.name && styles.optionTextActive
-                ]}
-              >
-                {formatPrice(size.price)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      
-      {/* Ice Selection */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Mức đá</Text>
-        <View style={styles.optionsContainer}>
-          {drink.iceOptions.map((ice) => (
-            <TouchableOpacity
-              key={ice}
-              style={[
-                styles.optionButton,
-                selectedIce === ice && styles.optionButtonActive
-              ]}
-              onPress={() => handleIceChange(ice)}
-            >
-              <Text 
-                style={[
-                  styles.optionText,
-                  selectedIce === ice && styles.optionTextActive
-                ]}
-              >
-                {ice}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      
-      {/* Sugar Selection */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Độ ngọt</Text>
-        <View style={styles.optionsContainer}>
-          {drink.sugarOptions.map((sugar) => (
-            <TouchableOpacity
-              key={sugar}
-              style={[
-                styles.optionButton,
-                selectedSugar === sugar && styles.optionButtonActive
-              ]}
-              onPress={() => handleSugarChange(sugar)}
-            >
-              <Text 
-                style={[
-                  styles.optionText,
-                  selectedSugar === sugar && styles.optionTextActive
-                ]}
-              >
-                {sugar}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-      
-      {/* Quantity Selection */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Số lượng</Text>
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => handleQuantityChange(-1)}
-            disabled={quantity <= 1}
-          >
-            <Ionicons name="remove" size={20} color={quantity <= 1 ? "#CCC" : "#333"} />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{quantity}</Text>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => handleQuantityChange(1)}
-            disabled={quantity >= 10}
-          >
-            <Ionicons name="add" size={20} color={quantity >= 10 ? "#CCC" : "#333"} />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      {/* Reviews */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.reviewHeader}>
-          <Text style={styles.sectionTitle}>Đánh giá</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>Xem tất cả</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {reviews.map((review) => (
-          <View key={review.id} style={styles.reviewItem}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewUser}>{review.user}</Text>
-              <Text style={styles.reviewDate}>{review.date}</Text>
-            </View>
-            <View style={styles.ratingStars}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons
-                  key={star}
-                  name="star"
-                  size={16}
-                  color={star <= review.rating ? "#FFD700" : "#E0E0E0"}
-                />
-              ))}
-            </View>
-            <Text style={styles.reviewComment}>{review.comment}</Text>
+    <View style={styles.fullScreenContainer}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <Image source={getImageSource(drink.image)} style={styles.drinkImage} />
+
+        <View style={styles.detailsContainer}>
+          <Text style={styles.drinkName}>{drink.name}</Text>
+          <Text style={styles.drinkPrice}>{drink.price.toLocaleString('vi-VN')} đ</Text>
+
+          <View style={styles.ratingSection}>
+            <Ionicons name="star" size={18} color="#FFD700" />
+            <Text style={styles.ratingText}>{drink.rating} ({drink.reviewsCount} đánh giá)</Text>
           </View>
-        ))}
-      </View>
-      
-      {/* Add to Cart Button */}
-      <View style={styles.footerContainer}>
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Tổng cộng:</Text>
-          <Text style={styles.totalPrice}>{formatPrice(getTotalPrice())}</Text>
+
+          <Text style={styles.sectionTitle}>Mô tả</Text>
+          <Text style={styles.descriptionText}>{drink.description}</Text>
+
+          {/* Size Options */}
+          {drink.sizes && drink.sizes.length > 0 && (
+            <View style={styles.optionsSection}>
+              <Text style={styles.sectionTitle}>Kích cỡ</Text>
+              <View style={styles.optionsRow}>
+                {drink.sizes.map((size) => (
+                  <TouchableOpacity
+                    key={size}
+                    style={[
+                      styles.optionButton,
+                      selectedSize === size && styles.selectedOptionButton,
+                    ]}
+                    onPress={() => setSelectedSize(size)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedSize === size && styles.selectedOptionText,
+                      ]}
+                    >
+                      {size}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Ice Options */}
+          {drink.iceOptions && drink.iceOptions.length > 0 && (
+            <View style={styles.optionsSection}>
+              <Text style={styles.sectionTitle}>Đá</Text>
+              <View style={styles.optionsRow}>
+                {drink.iceOptions.map((ice) => (
+                  <TouchableOpacity
+                    key={ice}
+                    style={[
+                      styles.optionButton,
+                      selectedIce === ice && styles.selectedOptionButton,
+                    ]}
+                    onPress={() => setSelectedIce(ice)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedIce === ice && styles.selectedOptionText,
+                      ]}
+                    >
+                      {ice}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Sugar Options */}
+          {drink.sugarOptions && drink.sugarOptions.length > 0 && (
+            <View style={styles.optionsSection}>
+              <Text style={styles.sectionTitle}>Đường</Text>
+              <View style={styles.optionsRow}>
+                {drink.sugarOptions.map((sugar) => (
+                  <TouchableOpacity
+                    key={sugar}
+                    style={[
+                      styles.optionButton,
+                      selectedSugar === sugar && styles.selectedOptionButton,
+                    ]}
+                    onPress={() => setSelectedSugar(sugar)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedSugar === sugar && styles.selectedOptionText,
+                      ]}
+                    >
+                      {sugar}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+
+          <View style={styles.quantitySection}>
+            <Text style={styles.sectionTitle}>Số lượng</Text>
+            <View style={styles.quantityControl}>
+              <TouchableOpacity style={styles.quantityButton} onPress={handleDecreaseQuantity}>
+                <Ionicons name="remove-outline" size={24} color="#8B4513" />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{quantity}</Text>
+              <TouchableOpacity style={styles.quantityButton} onPress={handleIncreaseQuantity}>
+                <Ionicons name="add-outline" size={24} color="#8B4513" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.reviewSection}>
+            <View style={styles.reviewHeader}>
+              <Text style={styles.sectionTitle}>Đánh giá ({reviews.length})</Text>
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>Xem tất cả</Text>
+              </TouchableOpacity>
+            </View>
+            {reviews.map((review) => (
+              <View key={review.id} style={styles.reviewItem}>
+                <Text style={styles.reviewUser}>{review.user}</Text>
+                <View style={styles.ratingStars}>
+                  {[...Array(review.rating)].map((_, i) => (
+                    <Ionicons key={i} name="star" size={14} color="#FFD700" />
+                  ))}
+                </View>
+                <Text style={styles.reviewComment}>{review.comment}</Text>
+                <Text style={styles.reviewDate}>{review.date}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-        <TouchableOpacity style={styles.addToCartButton} onPress={addToCart}>
-          <Ionicons name="cart" size={20} color="#FFF" />
-          <Text style={styles.addToCartText}>Thêm vào giỏ hàng</Text>
+      </ScrollView>
+
+      {/* Footer with Add to Cart Button */}
+      <View style={styles.footerContainer}>
+        <View style={styles.priceTotal}>
+          <Text style={styles.totalLabel}>Tổng cộng:</Text>
+          <Text style={styles.totalAmount}>{(drink.price * quantity).toLocaleString('vi-VN')} đ</Text>
+        </View>
+        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+          <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.addToCartButtonText}>Thêm vào giỏ hàng</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreenContainer: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F7F7F7',
+  },
+  scrollViewContent: {
+    paddingBottom: 100, // Make space for the fixed footer
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
+    backgroundColor: '#F7F7F7',
   },
   drinkImage: {
     width: '100%',
-    height: 250,
+    height: 300,
     resizeMode: 'cover',
   },
-  infoContainer: {
+  detailsContainer: {
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20, // Overlap with image slightly
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
   },
   drinkName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
+    marginBottom: 8,
   },
   drinkPrice: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#8B4513',
-    marginTop: 8,
+    marginBottom: 12,
   },
-  description: {
-    fontSize: 14,
+  ratingSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  ratingText: {
+    fontSize: 16,
     color: '#666',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  sectionContainer: {
-    padding: 16,
-    backgroundColor: '#FFF',
-    marginTop: 8,
+    marginLeft: 5,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 10,
+    marginTop: 15,
   },
-  ingredientsContainer: {
+  descriptionText: {
+    fontSize: 16,
+    color: '#555',
+    lineHeight: 24,
+    marginBottom: 15,
+  },
+  optionsSection: {
+    marginBottom: 15,
+  },
+  optionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  ingredientItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 8,
-  },
-  ingredientText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'wrap', // Allow options to wrap to the next line
+    gap: 10, // Space between items
   },
   optionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     backgroundColor: '#F0F0F0',
-    marginRight: 10,
-    marginBottom: 10,
-    minWidth: 60,
-    alignItems: 'center',
   },
-  optionButtonActive: {
+  selectedOptionButton: {
     backgroundColor: '#8B4513',
+    borderColor: '#8B4513',
   },
   optionText: {
     fontSize: 14,
-    color: '#666',
+    color: '#555',
+    fontWeight: '500',
   },
-  optionTextActive: {
-    color: '#FFF',
+  selectedOptionText: {
+    color: '#FFFFFF',
   },
-  optionPriceText: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+  quantitySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 15,
   },
-  quantityContainer: {
+  quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F9F9F9',
+    borderRadius: 25,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   quantityButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginHorizontal: 16,
+    minWidth: 20, // Ensure enough space for numbers
+    textAlign: 'center',
+  },
+  reviewSection: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 15,
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
   },
   viewAllText: {
     fontSize: 14,
     color: '#8B4513',
+    fontWeight: '500',
   },
   reviewItem: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    backgroundColor: '#FDFDFD',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   reviewUser: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#333',
   },
   reviewDate: {
     fontSize: 12,
     color: '#999',
+    alignSelf: 'flex-end', // Align date to the right
+    marginTop: 5,
   },
   ratingStars: {
     flexDirection: 'row',
@@ -493,42 +502,54 @@ const styles = StyleSheet.create({
   reviewComment: {
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
+    marginTop: 8,
     lineHeight: 20,
   },
   footerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 16,
     backgroundColor: '#FFF',
-    marginTop: 8,
-    marginBottom: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8, // Higher elevation for the footer
   },
-  totalContainer: {
-    flex: 1,
+  priceTotal: {
+    alignItems: 'flex-start',
   },
   totalLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#777',
+    marginBottom: 2,
   },
-  totalPrice: {
-    fontSize: 18,
+  totalAmount: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#8B4513',
   },
   addToCartButton: {
     backgroundColor: '#8B4513',
-    borderRadius: 8,
+    borderRadius: 30, // Make it pill-shaped
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 180, // Ensure enough width
   },
-  addToCartText: {
+  addToCartButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
+    fontWeight: 'bold',
     marginLeft: 8,
   },
 });

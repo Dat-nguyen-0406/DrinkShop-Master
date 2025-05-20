@@ -10,6 +10,7 @@ import DrinkDetailScreen from '../screens/customer/DrinkDetailScreen';
 import SearchScreen from '../screens/customer/SearchScreen';
 import CartScreen from '../screens/customer/CartScreen';
 import ProfileScreen from '../screens/customer/ProfileScreen';
+import CheckoutScreen from '../screens/customer/CheckoutScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -35,6 +36,7 @@ const SearchStackScreen = () => (
 const CartStackScreen = () => (
   <CartStack.Navigator>
     <CartStack.Screen name="Cart" component={CartScreen} options={{ title: 'Giỏ hàng' }} />
+    <CartStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: 'Thanh toán' }} /> 
   </CartStack.Navigator>
 );
 

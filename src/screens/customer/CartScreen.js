@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  StyleSheet, 
-  Image, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
   ScrollView
@@ -18,7 +18,7 @@ const getImageSource = (imageName) => {
     case 'coffee':
       return require('../../assets/images/cafe.jpg');
     case 'tea':
-      return require('../../assets/images/default.png');
+      return require('../../assets/images/trasua.jpg');
     default:
       return require('../../assets/images/default.png');
   }
@@ -48,6 +48,22 @@ const CartScreen = ({ navigation }) => {
     }
   };
 
+  // Function to load sample cart items
+  const loadSampleCart = async () => {
+    const sampleItems = [
+      { id: '1', name: 'Cà Phê Sữa', price: 35000, quantity: 2, image: 'coffee' },
+      { id: '3', name: 'Trà Sữa Trân Châu', price: 40000, quantity: 1, image: 'tea' },
+      { id: '5', name: 'Nước Ép Cam Tươi', price: 42000, quantity: 3, image: 'default' },
+    ];
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify(sampleItems));
+      loadCart(); // Reload cart after setting sample data
+      Alert.alert('Thông báo', 'Đã thêm một số đơn hàng bán chạy vào giỏ hàng.');
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể thêm đơn hàng bán chạy.');
+    }
+  };
+
   const calculateTotal = (items) => {
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setTotalPrice(total);
@@ -66,11 +82,11 @@ const CartScreen = ({ navigation }) => {
       if (newQuantity < 1) {
         return removeItem(id);
       }
-      
-      const updatedCart = cartItems.map(item => 
+
+      const updatedCart = cartItems.map(item =>
         item.id === id ? { ...item, quantity: newQuantity } : item
       );
-      
+
       await AsyncStorage.setItem('cart', JSON.stringify(updatedCart));
       setCartItems(updatedCart);
       calculateTotal(updatedCart);
@@ -95,6 +111,7 @@ const CartScreen = ({ navigation }) => {
       Alert.alert('Giỏ hàng trống', 'Vui lòng thêm sản phẩm vào giỏ hàng');
       return;
     }
+    // Navigate to a Checkout screen, passing cart items and total price
     navigation.navigate('Checkout', { cartItems, totalPrice });
   };
 
@@ -104,18 +121,18 @@ const CartScreen = ({ navigation }) => {
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.price}>{item.price.toLocaleString('vi-VN')} đ</Text>
-        
+
         <View style={styles.quantityContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => updateItemQuantity(item.id, item.quantity - 1)}
           >
             <Text style={styles.quantityButtonText}>-</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.quantityValue}>{item.quantity}</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.quantityButton}
             onPress={() => updateItemQuantity(item.id, item.quantity + 1)}
           >
@@ -123,8 +140,8 @@ const CartScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.removeButton}
         onPress={() => removeItem(item.id)}
       >
@@ -158,11 +175,18 @@ const CartScreen = ({ navigation }) => {
           <View style={styles.emptyCartContainer}>
             <Ionicons name="cart-outline" size={80} color="#CCCCCC" />
             <Text style={styles.empty}>Giỏ hàng của bạn đang trống</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.continueShopping}
               onPress={() => navigation.navigate('HomeTab')}
             >
               <Text style={styles.continueShoppingText}>Tiếp tục mua sắm</Text>
+            </TouchableOpacity>
+            {/* Button to load sample orders */}
+            <TouchableOpacity
+              style={styles.loadSampleButton}
+              onPress={loadSampleCart}
+            >
+              <Text style={styles.loadSampleButtonText}>Tải sản phẩm bán chạy</Text>
             </TouchableOpacity>
           </View>
         }
@@ -174,7 +198,7 @@ const CartScreen = ({ navigation }) => {
             <Text style={styles.totalText}>Tổng cộng:</Text>
             <Text style={styles.totalPrice}>{totalPrice.toLocaleString('vi-VN')} đ</Text>
           </View>
-          
+
           <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
             <Text style={styles.checkoutButtonText}>Thanh toán</Text>
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -186,9 +210,9 @@ const CartScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F9F9F9' 
+  container: {
+    flex: 1,
+    backgroundColor: '#F9F9F9'
   },
   loadingContainer: {
     flex: 1,
@@ -206,8 +230,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EEEEEE',
     backgroundColor: '#FFFFFF'
   },
-  header: { 
-    fontSize: 24, 
+  header: {
+    fontSize: 24,
     fontWeight: 'bold'
   },
   itemCount: {
@@ -215,8 +239,8 @@ const styles = StyleSheet.create({
     color: '#8B4513',
     fontWeight: '600'
   },
-  item: { 
-    flexDirection: 'row', 
+  item: {
+    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     padding: 15,
     marginHorizontal: 15,
@@ -228,23 +252,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3
   },
-  image: { 
-    width: 80, 
-    height: 80, 
-    borderRadius: 10 
+  image: {
+    width: 80,
+    height: 80,
+    borderRadius: 10
   },
-  info: { 
+  info: {
     flex: 1,
-    marginLeft: 15, 
-    justifyContent: 'center' 
+    marginLeft: 15,
+    justifyContent: 'center'
   },
-  name: { 
-    fontSize: 18, 
+  name: {
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5
   },
-  price: { 
-    fontSize: 16, 
+  price: {
+    fontSize: 16,
     color: '#8B4513',
     marginBottom: 8
   },
@@ -278,9 +302,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 50
   },
-  empty: { 
-    textAlign: 'center', 
-    marginTop: 20, 
+  empty: {
+    textAlign: 'center',
+    marginTop: 20,
     fontSize: 18,
     color: '#777777'
   },
@@ -295,6 +319,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16
+  },
+  loadSampleButton: { // New style for the sample button
+    marginTop: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#6C757D', // A neutral color for the sample button
+    borderRadius: 25
+  },
+  loadSampleButtonText: { // New style for the sample button text
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14
   },
   footer: {
     backgroundColor: '#FFFFFF',
