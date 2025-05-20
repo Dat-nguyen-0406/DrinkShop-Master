@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getTokenAndRole, saveToken, clearAllStorage } from '../utils/storage';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { getTokenAndRole, saveToken, clearAllStorage } from "../utils/storage";
 
 const AuthContext = createContext();
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
         setUserRole(null);
       }
     } catch (error) {
-      console.log('Error checking login status:', error);
+      console.log("Error checking login status:", error);
       await clearAllStorage();
       setIsLoggedIn(false);
       setUserRole(null);
@@ -33,33 +33,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (token, role) => {
-    await saveToken(token, role);
-    setIsLoggedIn(true);
-    setUserRole(role);
-  };
-
-  const logout = async () => {
+  const login = async (userId, role) => {
     try {
-      await clearAllStorage();
-      setIsLoggedIn(false);
-      setUserRole(null);
-      return true; // Add this to indicate success
+      await saveToken(userId, role);
+      setIsLoggedIn(true);
+      setUserRole(role);
     } catch (error) {
-      console.error("Logout error:", error);
-      return false; // Add this to indicate failure
+      console.log("Lỗi khi lưu token", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const logout = async () => {
+    setUserRole(null);
+    setIsLoading(false);
+  };
+
   return (
-    <AuthContext.Provider value={{ 
-      isLoggedIn, 
-      userRole, 
-      isLoading, 
-      login, 
-      logout,
-      checkLoginStatus
-    }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        userRole,
+        isLoading,
+        login,
+        logout,
+        checkLoginStatus,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

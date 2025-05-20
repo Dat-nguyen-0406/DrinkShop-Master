@@ -1,332 +1,241 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Image, 
-  TouchableOpacity, 
-  ScrollView, 
-  ActivityIndicator 
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-//import axios from 'axios';
-//import { API_URL } from '../../utils/config';
+import React, { useState, useEffect } from "react";
+import app from "../../sever/firebase";
+import { collection, getDocs, getFirestore } from "firebase/firestore";
+import {
+  View,
+  Image,
+  Text,
+  FlatList,
+  ActivityIndicator,
+} from "react-native-web";
+import { StyleSheet } from "react-native";
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-  const [categories, setCategories] = useState([
-    { id: '1', name: 'Cà phê', image: require('../../assets/images/cafe.jpg') },
-    { id: '2', name: 'Trà sữa', image: require('../../assets/images/trasua.jpg') },
-    { id: '3', name: 'Nước ép', image: require('../../assets/images/nuocep.jpg') },
-    { id: '4', name: 'Đá xay', image: require('../../assets/images/sinhto.jpg') },
-  ]);
-  
-  const [featuredDrinks, setFeaturedDrinks] = useState([
-    { 
-      id: '1', 
-      name: 'Cà phê sữa đá', 
-      image: require('../../assets/images/cafe.jpg'),
-      price: 29000,
-      rating: 4.8
-    },
-    { 
-      id: '2', 
-      name: 'Trà sữa trân châu', 
-      image: require('../../assets/images/trasua.jpg'),
-      price: 35000,
-      rating: 4.6
-    },
-    { 
-      id: '3', 
-      name: 'Nước cam tươi', 
-      image: require('../../assets/images/nuocep.jpg'),
-      price: 32000,
-      rating: 4.5
-    },
-  ]);
-  
-  const [loading, setLoading] = useState(false);
-  
+  const [coffeeItem, setCoffeeItems] = useState([]);
+  const [promotions, setPromotions] = useState([]);
+  const [headerData, setHeaderData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState(null);
 
-  const formatPrice = (price) => {
-    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const db = getFirestore(app);
 
-  const renderCategoryItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.categoryItem}
-      onPress={() => navigation.navigate('DrinkList', { categoryId: item.id, categoryName: item.name })}
-    >
-      <View style={styles.categoryImageContainer}>
-        <Image source={item.image} style={styles.categoryImage} />
-      </View>
-      <Text style={styles.categoryName}>{item.name}</Text>
-    </TouchableOpacity>
-  );
+        // Fetch coffee items
+        const coffeeSnapshot = await getDocs(collection(db, "douong"));
+        const coffeeItems = coffeeSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCoffeeItems(coffeeItems);
 
-  const renderFeaturedItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.featuredItem}
-      onPress={() => navigation.navigate('DrinkDetail', { drinkId: item.id })}
-    >
-      <Image source={item.image} style={styles.featuredImage} />
-      <View style={styles.featuredInfo}>
-        <Text style={styles.featuredName}>{item.name}</Text>
-        <Text style={styles.featuredPrice}>{formatPrice(item.price)}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+        // Fetch header data
+        const headerSnapshot = await getDocs(collection(db, "photo"));
+        if (!headerSnapshot.empty) {
+          const headerDoc = headerSnapshot.docs[0].data();
+          setHeaderData({
+            title: headerDoc.title || "Cà phê chất lượng",
+            image: headerDoc.Image || "https://via.placeholder.com/400x200",
+          });
+        }
+
+        setPromotions([
+          { id: 1, text: "Giảm 20%", description: "Cho đơn hàng đầu tiên" },
+        ]);
+      } catch (err) {
+        console.error("Firestore error:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const renderCategoryHeader = () => (
+    <View style={styles.headerContainer}>
+      {headerData ? (
+        <>
+          <Text style={styles.mainTitle}>{headerData.title}</Text>
+          <Image
+            source={{ uri: headerData.image }}
+            style={styles.headerImage}
+            resizeMode="cover"
+          />
+          {/* Phần danh mục */}
+          <View style={styles.categorySection}>
+            <Text style={styles.sectionTitle}>Danh mục</Text>
+            <View style={styles.categoryGrid}>
+              <Text style={styles.categoryItem}>Cà phê</Text>
+              <Text style={styles.categoryItem}>Trà</Text>
+              <Text style={styles.categoryItem}>Nước ép</Text>
+              <Text style={styles.categoryItem}>Khác</Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+      )}
+    </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B4513" />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Banner Section */}
-      <View style={styles.bannerContainer}>
-        <Image 
-          source={require('../../assets/images/cafe.jpg')} 
-          style={styles.bannerImage}
-        />
-        <View style={styles.bannerOverlay}>
-          <Text style={styles.bannerTitle}>Cà phê chất lượng</Text>
-          <Text style={styles.bannerSubtitle}>Cho ngày mới tràn đầy năng lượng</Text>
-        </View>
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Lỗi khi tải dữ liệu: {error}</Text>
+        <Text>Vui lòng kiểm tra kết nối hoặc liên hệ quản trị viên</Text>
       </View>
+    );
+  }
 
-      {/* Categories Section */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Danh mục</Text>
-          <TouchableOpacity onPress={() => {}}>
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={item => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
-
-      {/* Featured Drinks Section */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Đồ uống nổi bật</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('DrinkList')}>
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={featuredDrinks}
-          renderItem={renderFeaturedItem}
-          keyExtractor={item => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
-
-      {/* Promotions Section */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Khuyến mãi</Text>
-        </View>
-        <TouchableOpacity style={styles.promotionCard}>
-          <Image 
-            source={require('../../assets/images/nuocep.jpg')} 
-            style={styles.promotionImage}
-          />
-          <View style={styles.promotionContent}>
-            <Text style={styles.promotionTitle}>Giảm 20%</Text>
-            <Text style={styles.promotionDescription}>Cho đơn hàng đầu tiên</Text>
-            <View style={styles.promotionButton}>
-              <Text style={styles.promotionButtonText}>Đặt ngay</Text>
-            </View>
+  const renderItem = ({ item }) => (
+    <View style={styles.itemContainer}>
+      <View style={styles.itemContent}>
+        <Image source={{ uri: item.image }} style={styles.itemImage} />
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName}>{item.drinkname}</Text>
+          <Text style={styles.itemPrice}>{item.price}đ</Text>
+          <View style={styles.ratingContainer}>
+            <Text style={styles.ratingText}>4.5</Text>
           </View>
-        </TouchableOpacity>
+        </View>
       </View>
-    </ScrollView>
+      <View style={styles.divider} />
+    </View>
+  );
+
+  const renderPromotion = ({ item }) => (
+    <View style={styles.promotionContainer}>
+      <Text style={styles.promotionTitle}>{item.text}</Text>
+      <Text style={styles.promotionDescription}>{item.description}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={coffeeItem}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={renderCategoryHeader}
+        ListFooterComponent={
+          <FlatList
+            data={promotions}
+            renderItem={renderPromotion}
+            keyExtractor={(item) => item.id.toString()}
+          />
+        }
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerContainer: {
+    marginBottom: 20,
   },
-  bannerContainer: {
-    height: 180,
-    position: 'relative',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 0,
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  bannerTitle: {
+  mainTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#000",
+    marginTop: 20,
+    textAlign: "center",
   },
-  bannerSubtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginTop: 4,
-  },
-  sectionContainer: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#8B4513',
-  },
-  categoryItem: {
-    marginRight: 16,
-    alignItems: 'center',
-    width: 80,
-  },
-  categoryImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  categoryImage: {
-    width: 40,
-    height: 40,
-  },
-  categoryName: {
-    marginTop: 8,
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#333',
-  },
-  featuredItem: {
-    width: 160,
-    marginRight: 16,
-    backgroundColor: '#FFF',
+  headerImage: {
+    width: "100%",
+    height: 200,
     borderRadius: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginVertical: 10,
   },
-  featuredImage: {
-    width: '100%',
-    height: 120,
+  categoryHeader: {
+    marginBottom: 15,
   },
-  featuredInfo: {
-    padding: 12,
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
-  featuredName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  tableHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
   },
-  featuredPrice: {
+  headerText: {
+    fontWeight: "bold",
     fontSize: 14,
-    fontWeight: '600',
-    color: '#8B4513',
-    marginTop: 4,
+  },
+  brandText: {
+    fontWeight: "bold",
+    marginTop: 5,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#ddd",
+    marginVertical: 10,
+  },
+  itemContainer: {
+    marginBottom: 15,
+  },
+  itemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  itemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    marginRight: 15,
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  itemPrice: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 5,
   },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
   ratingText: {
     fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
+    color: "#FFD700",
   },
-  promotionCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 16,
-  },
-  promotionImage: {
-    width: 100,
-    height: '100%',
-  },
-  promotionContent: {
-    flex: 1,
-    padding: 16,
+  promotionContainer: {
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 5,
   },
   promotionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#8B4513',
+    fontWeight: "bold",
+    marginBottom: 5,
   },
   promotionDescription: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  promotionButton: {
-    backgroundColor: '#8B4513',
-    padding: 8,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginTop: 12,
-  },
-  promotionButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
+    color: "#666",
   },
 });
 
