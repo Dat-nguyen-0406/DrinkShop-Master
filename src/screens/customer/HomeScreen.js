@@ -7,16 +7,25 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
 } from "react-native-web";
 import { StyleSheet } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const HomeScreen = () => {
-  const [coffeeItem, setCoffeeItems] = useState([]);
+  const [coffeeItems, setCoffeeItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [headerData, setHeaderData] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const navigation = useNavigation();
+
+  const categories = ["Tất cả", "Cà Phê", "Trà", "Nước ép", "Khác"];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,6 +39,7 @@ const HomeScreen = () => {
           ...doc.data(),
         }));
         setCoffeeItems(coffeeItems);
+        setFilteredItems(coffeeItems);
 
         // Fetch header data
         const headerSnapshot = await getDocs(collection(db, "photo"));
@@ -42,7 +52,12 @@ const HomeScreen = () => {
         }
 
         setPromotions([
-          { id: 1, text: "Giảm 20%", description: "Cho đơn hàng đầu tiên" },
+          {
+            id: 1,
+            text: "Giảm 20%",
+            description: "Cho đơn hàng đầu tiên",
+            image: "../../assets/images/cafe.jpg",
+          },
         ]);
       } catch (err) {
         console.error("Firestore error:", err);
@@ -55,6 +70,25 @@ const HomeScreen = () => {
     fetchData();
   }, []);
 
+  // Hàm lọc sản phẩm theo category và search text
+  useEffect(() => {
+    let result = coffeeItems;
+
+    // Lọc theo category
+    if (selectedCategory && selectedCategory !== "Tất cả") {
+      result = result.filter((item) => item.category === selectedCategory);
+    }
+
+    // Lọc theo search text
+    if (searchText) {
+      result = result.filter((item) =>
+        item.drinkname.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    setFilteredItems(result);
+  }, [selectedCategory, searchText, coffeeItems]);
+
   const renderCategoryHeader = () => (
     <View style={styles.headerContainer}>
       {headerData ? (
@@ -65,20 +99,109 @@ const HomeScreen = () => {
             style={styles.headerImage}
             resizeMode="cover"
           />
+
+          {/* Thanh tìm kiếm */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tìm kiếm đồ uống..."
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+          </View>
+
           {/* Phần danh mục */}
           <View style={styles.categorySection}>
             <Text style={styles.sectionTitle}>Danh mục</Text>
             <View style={styles.categoryGrid}>
-              <Text style={styles.categoryItem}>Cà phê</Text>
-              <Text style={styles.categoryItem}>Trà</Text>
-              <Text style={styles.categoryItem}>Nước ép</Text>
-              <Text style={styles.categoryItem}>Khác</Text>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryItem,
+                    selectedCategory === category ||
+                    (category === "Tất cả" && !selectedCategory)
+                      ? styles.selectedCategoryItem
+                      : null,
+                  ]}
+                  onPress={() =>
+                    setSelectedCategory(category === "Tất cả" ? null : category)
+                  }
+                >
+                  <Text style={styles.categoryText}>{category}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </>
       ) : (
         <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
       )}
+    </View>
+  );
+
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
+        stars.push(
+          <FontAwesome key={i} name="star" size={16} color="#FFD700" />
+        );
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        stars.push(
+          <FontAwesome
+            key={i}
+            name="star-half-full"
+            size={16}
+            color="#FFD700"
+          />
+        );
+      } else {
+        stars.push(
+          <FontAwesome key={i} name="star-o" size={16} color="#FFD700" />
+        );
+      }
+    }
+
+    return (
+      <View style={styles.ratingContainer}>
+        {stars}
+        <Text style={styles.ratingText}>({rating})</Text>
+      </View>
+    );
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.itemContainer}
+      onPress={() => navigation.navigate("DrinkDetail", { drinkId: item.id })}
+    >
+      <View style={styles.itemContent}>
+        <Image source={{ uri: item.image }} style={styles.itemImage} />
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName}>{item.drinkname}</Text>
+          <Text style={styles.itemPrice}>{item.price}đ</Text>
+          {renderStars(item.start || 0)}
+        </View>
+      </View>
+      <View style={styles.divider} />
+    </TouchableOpacity>
+  );
+
+  const renderPromotion = ({ item }) => (
+    <View style={styles.promotionContainer}>
+      <Image
+        source={{ uri: item.image }}
+        style={styles.promotionImage}
+        resizeMode="cover"
+      />
+      <View style={styles.promotionTextContainer}>
+        <Text style={styles.promotionTitle}>{item.text}</Text>
+        <Text style={styles.promotionDescription}>{item.description}</Text>
+      </View>
     </View>
   );
 
@@ -99,33 +222,10 @@ const HomeScreen = () => {
     );
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.itemContent}>
-        <Image source={{ uri: item.image }} style={styles.itemImage} />
-        <View style={styles.itemDetails}>
-          <Text style={styles.itemName}>{item.drinkname}</Text>
-          <Text style={styles.itemPrice}>{item.price}đ</Text>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingText}>4.5</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.divider} />
-    </View>
-  );
-
-  const renderPromotion = ({ item }) => (
-    <View style={styles.promotionContainer}>
-      <Text style={styles.promotionTitle}>{item.text}</Text>
-      <Text style={styles.promotionDescription}>{item.description}</Text>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <FlatList
-        data={coffeeItem}
+        data={filteredItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={renderCategoryHeader}
@@ -146,6 +246,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 20,
+    marginBottom: 20,
   },
   headerContainer: {
     marginBottom: 20,
@@ -163,31 +266,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginVertical: 10,
   },
-  categoryHeader: {
-    marginBottom: 15,
+  searchContainer: {
+    marginVertical: 10,
   },
-  categoryTitle: {
+  searchInput: {
+    height: 40,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+  },
+  categorySection: {
+    marginTop: 15,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
   },
-  tableHeader: {
+  categoryGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 5,
+    marginBottom: 15,
   },
-  headerText: {
-    fontWeight: "bold",
+  categoryItem: {
+    width: "23%",
+    paddingVertical: 10,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  selectedCategoryItem: {
+    backgroundColor: "#6F4E37",
+  },
+  categoryText: {
     fontSize: 14,
-  },
-  brandText: {
-    fontWeight: "bold",
-    marginTop: 5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#ddd",
-    marginVertical: 10,
+    color: "#333",
   },
   itemContainer: {
     marginBottom: 15,
@@ -221,21 +338,51 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: "#FFD700",
+    color: "#666",
+    marginLeft: 5,
   },
   promotionContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
     marginVertical: 10,
-    padding: 10,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 5,
+    padding: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    alignItems: "center",
+  },
+  promotionImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  promotionTextContainer: {
+    flex: 1,
+    marginLeft: 15,
   },
   promotionTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    color: "#6F4E37",
     marginBottom: 5,
   },
   promotionDescription: {
     fontSize: 14,
     color: "#666",
+    lineHeight: 20,
+  },
+
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
   },
 });
 
