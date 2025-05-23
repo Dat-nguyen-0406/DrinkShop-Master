@@ -56,7 +56,8 @@ const HomeScreen = () => {
             id: 1,
             text: "Giảm 20%",
             description: "Cho đơn hàng đầu tiên",
-            image: "../../assets/images/cafe.jpg",
+            image:
+              "C:/Users/admin88/DrinkShop-Master/src/assets/images/capuchino.png",
           },
         ]);
       } catch (err) {
