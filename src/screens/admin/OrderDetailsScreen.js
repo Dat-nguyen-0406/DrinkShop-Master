@@ -12,11 +12,11 @@ const OrderDetailsScreen = ({ route, navigation }) => {
   // Order status colors and labels
   const statusConfig = {
     'pending': { color: '#FF9800', icon: 'time-outline', label: 'Chờ xác nhận' },
-    'confirmed': { color: '#2196F3', icon: 'checkmark-circle-outline', label: 'Đã xác nhận' },
+    'confirmed': { color: '#2196F3', icon: 'checkmark-outline', label: 'Đã xác nhận' },
     'preparing': { color: '#9C27B0', icon: 'cafe-outline', label: 'Đang pha chế' },
     'ready': { color: '#4CAF50', icon: 'bicycle-outline', label: 'Sẵn sàng giao' },
     'delivered': { color: '#009688', icon: 'checkmark-done-outline', label: 'Đã giao hàng' },
-    'cancelled': { color: '#F44336', icon: 'close-circle-outline', label: 'Đã hủy' },
+    'cancelled': { color: '#F44336', icon: 'close-outline', label: 'Đã hủy' },
   };
 
   // Simulate fetching order data
@@ -131,7 +131,7 @@ const OrderDetailsScreen = ({ route, navigation }) => {
   if (!order) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={60} color="#D32F2F" />
+        <Ionicons name="alert-outline" size={60} color="#D32F2F" />
         <Text style={styles.errorText}>Không tìm thấy thông tin đơn hàng!</Text>
       </View>
     );
@@ -172,7 +172,7 @@ const OrderDetailsScreen = ({ route, navigation }) => {
             style={[styles.actionButton, { backgroundColor: statusConfig[nextStatus].color }]}
             onPress={() => handleUpdateStatus(nextStatus)}
           >
-            <Ionicons name="arrow-forward-circle" size={20} color="#fff" />
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>
               Chuyển sang {statusConfig[nextStatus].label}
             </Text>
@@ -184,7 +184,7 @@ const OrderDetailsScreen = ({ route, navigation }) => {
             style={[styles.actionButton, { backgroundColor: '#F44336' }]}
             onPress={() => handleUpdateStatus('cancelled')}
           >
-            <Ionicons name="close-circle" size={20} color="#fff" />
+            <Ionicons name="close" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Hủy đơn hàng</Text>
           </TouchableOpacity>
         )}

@@ -30,6 +30,7 @@ const CategoriesScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
+  
   const fetchCategories = async () => {
     // In a real app, you would fetch from an API
     setLoading(true);

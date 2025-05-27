@@ -1,38 +1,52 @@
 // src/screens/admin/AddDrinkScreen.js
 
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { Ionicons } from "@expo/vector-icons";
 
 const AddDrinkScreen = ({ navigation }) => {
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('coffee');
-  const [imageUrl, setImageUrl] = useState('');
-  
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("coffee");
+  const [imageUrl, setImageUrl] = useState("");
+
   // Example categories
   const categories = [
-    { id: 'coffee', name: 'Cà phê' },
-    { id: 'tea', name: 'Trà' },
-    { id: 'milktea', name: 'Trà sữa' },
-    { id: 'smoothie', name: 'Sinh tố' },
-    { id: 'juice', name: 'Nước ép' },
+    { id: "coffee", name: "Cà phê" },
+    { id: "tea", name: "Trà" },
+    { id: "milktea", name: "Trà sữa" },
+    { id: "smoothie", name: "Sinh tố" },
+    { id: "juice", name: "Nước ép" },
   ];
 
   const handleAddDrink = () => {
     // Validate inputs
     if (!name || !price || !description || !category) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+      alert("Vui lòng điền đầy đủ thông tin!");
       return;
     }
-    
+
     // Here you would typically call an API to save the new drink
-    console.log('Adding new drink:', { name, price, description, category, imageUrl });
-    
+    console.log("Adding new drink:", {
+      name,
+      price,
+      description,
+      category,
+      imageUrl,
+    });
+
     // Navigate back to drinks list
-    alert('Đã thêm đồ uống thành công!');
+    alert("Đã thêm đồ uống thành công!");
     navigation.goBack();
   };
 
@@ -81,7 +95,7 @@ const AddDrinkScreen = ({ navigation }) => {
             onValueChange={(itemValue) => setCategory(itemValue)}
             style={styles.picker}
           >
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <Picker.Item key={cat.id} label={cat.name} value={cat.id} />
             ))}
           </Picker>
@@ -111,10 +125,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   imageContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   drinkImage: {
@@ -127,64 +141,64 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
   },
   placeholderText: {
-    color: '#999',
+    color: "#999",
     marginTop: 8,
   },
   uploadButton: {
-    backgroundColor: '#8B0000',
+    backgroundColor: "#8B0000",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 5,
   },
   uploadButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
   formGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
-    color: '#333',
+    color: "#333",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 5,
     padding: 10,
     fontSize: 16,
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 5,
   },
   picker: {
     height: 50,
   },
   addButton: {
-    backgroundColor: '#8B0000',
+    backgroundColor: "#8B0000",
     padding: 15,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 20,
   },
   addButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

@@ -6,17 +6,21 @@ const ROLE_KEY = 'userRole';
 
 export const saveToken = async (token, role) => {
   try {
+    const tokenStr = String(token); // ép thành chuỗi
+    const roleStr = String(role);   // ép thành chuỗi
+
     if (Platform.OS === 'web') {
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(ROLE_KEY, role);
+      localStorage.setItem(TOKEN_KEY, tokenStr);
+      localStorage.setItem(ROLE_KEY, roleStr);
     } else {
-      await AsyncStorage.setItem(TOKEN_KEY, token);
-      await AsyncStorage.setItem(ROLE_KEY, role);
+      await AsyncStorage.setItem(TOKEN_KEY, tokenStr);
+      await AsyncStorage.setItem(ROLE_KEY, roleStr);
     }
   } catch (error) {
     console.error('Error saving token and role', error);
   }
 };
+
 
 export const getTokenAndRole = async () => {
   try {
