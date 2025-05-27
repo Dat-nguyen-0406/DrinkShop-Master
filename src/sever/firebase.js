@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA-sDgp1shnek8cCFih8IqrgvDZS7o9A9s",
   authDomain: "database-shop-ea84c.firebaseapp.com",
   projectId: "database-shop-ea84c",
-  storageBucket: "database-shop-ea84c.firebasestorage.app",
+  storageBucket: "database-shop-ea84c.appspot.com",
   messagingSenderId: "160513197",
   appId: "1:160513197:web:d24bed880b6c428b359a24",
   measurementId: "G-3682TY94VW",

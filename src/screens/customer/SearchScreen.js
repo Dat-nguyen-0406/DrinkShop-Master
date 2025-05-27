@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator, // Thêm ActivityIndicator để hiển thị trạng thái tải
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -65,50 +66,59 @@ const SearchScreen = () => {
       }
     };
 
-    if (searchHistory.length > 0) {
+    // Chỉ lưu nếu có lịch sử và không phải là lần khởi tạo rỗng
+    if (searchHistory.length > 0 || (searchHistory.length === 0 && !isLoading)) {
       saveSearchHistory();
     }
-  }, [searchHistory]);
+  }, [searchHistory, isLoading]);
 
-  // Xử lý tìm kiếm
+
+  // Xử lý tìm kiếm chính
   const handleSearch = () => {
-    if (!searchText.trim()) return;
+    if (!searchText.trim()) {
+      setFilteredProducts([]); // Nếu ô tìm kiếm trống, xóa kết quả tìm kiếm
+      setSuggestions([]); // Xóa đề xuất
+      return;
+    }
 
     // Thêm vào lịch sử tìm kiếm (không trùng lặp)
     const newHistory = [
-      searchText,
-      ...searchHistory.filter((item) => item !== searchText),
+      searchText.trim(),
+      ...searchHistory.filter((item) => item.toLowerCase() !== searchText.trim().toLowerCase()),
     ].slice(0, 5); // Giới hạn 5 mục gần nhất
     setSearchHistory(newHistory);
 
     // Lọc sản phẩm
     const filtered = products.filter((product) =>
-      product.drinkname.toLowerCase().includes(searchText.toLowerCase())
+      product.drinkname.toLowerCase().includes(searchText.trim().toLowerCase())
     );
     setFilteredProducts(filtered);
+    setSuggestions([]); // Xóa đề xuất khi đã tìm kiếm
   };
 
   // Xử lý khi nhấn vào một mục trong lịch sử
   const handleHistoryItemPress = (item) => {
     setSearchText(item);
+    // Tự động tìm kiếm khi chọn từ lịch sử
     const filtered = products.filter((product) =>
       product.drinkname.toLowerCase().includes(item.toLowerCase())
     );
     setFilteredProducts(filtered);
+    setSuggestions([]); // Xóa đề xuất
   };
 
   // Xử lý khi thay đổi text input (đề xuất)
   const handleTextChange = (text) => {
     setSearchText(text);
     if (text.length > 0) {
-      const suggested = products
-        .filter((product) =>
-          product.drinkname.toLowerCase().includes(text.toLowerCase())
-        )
-        .slice(0, 5); // Giới hạn 5 đề xuất
+      const suggested = products.filter((product) =>
+        product.drinkname.toLowerCase().includes(text.toLowerCase())
+      );
       setSuggestions(suggested);
+      setFilteredProducts([]); // Đảm bảo không hiển thị kết quả cũ khi đang gõ đề xuất
     } else {
       setSuggestions([]);
+      setFilteredProducts([]); // Khi text rỗng, xóa cả filteredProducts
     }
   };
 
@@ -159,8 +169,8 @@ const SearchScreen = () => {
       style={styles.suggestionItem}
       onPress={() => {
         setSearchText(item.drinkname);
-        setFilteredProducts([item]);
-        setSuggestions([]);
+        setFilteredProducts([item]); // Khi chọn đề xuất, hiển thị ngay kết quả đó
+        setSuggestions([]); // Xóa đề xuất
       }}
     >
       <FontAwesome name="search" size={16} color="#888" />
@@ -187,63 +197,84 @@ const SearchScreen = () => {
           returnKeyType="search"
         />
         {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText("")}>
+          <TouchableOpacity onPress={() => handleTextChange("")}>
             <FontAwesome name="times" size={20} color="#888" />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Hiển thị đề xuất */}
-      {suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
-          <FlatList
-            data={suggestions}
-            renderItem={renderSuggestionItem}
-            keyExtractor={(item) => item.id}
-          />
+      {isLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#8B0000" />
+          <Text>Đang tải dữ liệu...</Text>
         </View>
-      )}
-
-      {/* Hiển thị kết quả tìm kiếm */}
-      {filteredProducts.length > 0 ? (
-        <FlatList
-          data={filteredProducts}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.productList}
-        />
       ) : (
-        // Hiển thị lịch sử tìm kiếm khi không có kết quả
-        <View style={styles.historyContainer}>
-          {searchHistory.length > 0 && (
-            <>
-              <View style={styles.historyHeader}>
-                <Text style={styles.sectionTitle}>Lịch sử tìm kiếm</Text>
-                <TouchableOpacity onPress={clearSearchHistory}>
-                  <Text style={styles.clearHistoryText}>Xóa tất cả</Text>
-                </TouchableOpacity>
-              </View>
+        <>
+          {/* Hiển thị đề xuất khi có searchText và chưa có kết quả tìm kiếm */}
+          {searchText.length > 0 && suggestions.length > 0 && filteredProducts.length === 0 && (
+            <View style={styles.suggestionsContainer}>
               <FlatList
-                data={searchHistory}
-                renderItem={renderHistoryItem}
-                keyExtractor={(item, index) => index.toString()}
+                data={suggestions}
+                renderItem={renderSuggestionItem}
+                keyExtractor={(item) => item.id}
               />
-            </>
+            </View>
           )}
 
-          {/* Đề xuất sản phẩm phổ biến khi không có lịch sử */}
-          {searchHistory.length === 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Đề xuất cho bạn</Text>
-              <FlatList
-                data={products.slice(0, 5)} // Lấy 5 sản phẩm đầu tiên làm đề xuất
-                renderItem={renderProductItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.productList}
-              />
-            </>
+          {/* Hiển thị kết quả tìm kiếm */}
+          {filteredProducts.length > 0 ? (
+            <FlatList
+              data={filteredProducts}
+              renderItem={renderProductItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.productList}
+            />
+          ) : (
+            // Hiển thị lịch sử tìm kiếm hoặc đề xuất chung khi không có kết quả và ô tìm kiếm trống
+            <View style={styles.historyContainer}>
+              {searchText.length === 0 && searchHistory.length > 0 && (
+                <>
+                  <View style={styles.historyHeader}>
+                    <Text style={styles.sectionTitle}>Lịch sử tìm kiếm</Text>
+                    <TouchableOpacity onPress={clearSearchHistory}>
+                      <Text style={styles.clearHistoryText}>Xóa tất cả</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <FlatList
+                    data={searchHistory}
+                    renderItem={renderHistoryItem}
+                    keyExtractor={(item, index) => index.toString()}
+                  />
+                </>
+              )}
+
+              {/* Đề xuất sản phẩm phổ biến khi không có lịch sử và searchText trống */}
+              {searchText.length === 0 && searchHistory.length === 0 && products.length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>Đề xuất cho bạn</Text>
+                  <FlatList
+                    data={products.slice(0, 5)} // Lấy 5 sản phẩm đầu tiên làm đề xuất
+                    renderItem={renderProductItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.productList}
+                  />
+                </>
+              )}
+
+              {/* Thông báo khi không tìm thấy gì và không có lịch sử/đề xuất chung */}
+              {searchText.length > 0 && filteredProducts.length === 0 && suggestions.length === 0 && (
+                <View style={styles.noResultsContainer}>
+                  <Text style={styles.noResultsText}>Không tìm thấy kết quả phù hợp.</Text>
+                </View>
+              )}
+               {searchText.length === 0 && searchHistory.length === 0 && products.length === 0 && !isLoading && (
+                <View style={styles.noResultsContainer}>
+                  <Text style={styles.noResultsText}>Không có dữ liệu sản phẩm để hiển thị đề xuất.</Text>
+                </View>
+              )}
+            </View>
           )}
-        </View>
+        </>
       )}
     </View>
   );
@@ -254,6 +285,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 16,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchBar: {
     flexDirection: "row",
@@ -276,6 +312,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   suggestionItem: {
     flexDirection: "row",
@@ -353,6 +393,17 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     color: "#6F4E37",
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
   },
 });
 

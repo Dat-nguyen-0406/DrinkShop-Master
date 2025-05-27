@@ -96,7 +96,7 @@ const ProfileScreen = () => {
             <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.fullname}>Tên Người Dùng :{userData.fullname}</Text>
+        <Text style={styles.fullname}>{userData.fullname}</Text>
         <Text style={styles.email}>Email : {userData.email}</Text>
         <Text style={styles.phone}>SĐT : {userData.phone}</Text>
 

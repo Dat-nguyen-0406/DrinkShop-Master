@@ -13,41 +13,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
-// Mock data - replace with actual API calls in production
-const mockDrinks = [
-  {
-    id: "1",
-    name: "Cà phê đen",
-    category: "Cà phê",
-    price: 25000,
-    image: require("../../assets/images/cafe.jpg"),
-    active: true,
-  },
-  {
-    id: "2",
-    name: "Trà sữa trân châu",
-    category: "Trà sữa",
-    price: 35000,
-    image: require("../../assets/images/trasua.jpg"),
-    active: true,
-  },
-  {
-    id: "3",
-    name: "Nước ép cam",
-    category: "Nước ép",
-    price: 30000,
-    image: require("../../assets/images/nuocep.jpg"),
-    active: true,
-  },
-  {
-    id: "4",
-    name: "Sinh tố xoài",
-    category: "Sinh tố",
-    price: 32000,
-    image: require("../../assets/images/sinhto.jpg"),
-    active: true,
-  },
-];
+// Import Firestore functions
+import { getFirestore, collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import app from "../../sever/firebase";
+
+// Initialize Firestore DB
+const db = getFirestore(app);
 
 const DrinksScreen = ({ navigation }) => {
   const [drinks, setDrinks] = useState([]);
@@ -58,6 +29,7 @@ const DrinksScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (isFocused) {
+      console.log("DrinksScreen: Màn hình đang được focus, gọi fetchDrinks.");
       fetchDrinks();
     }
   }, [isFocused]);
@@ -68,26 +40,51 @@ const DrinksScreen = ({ navigation }) => {
     } else {
       const filtered = drinks.filter(
         (drink) =>
-          drink.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          drink.drinkname.toLowerCase().includes(searchQuery.toLowerCase()) ||
           drink.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredDrinks(filtered);
     }
+    console.log("DrinksScreen: Cập nhật danh sách lọc hoặc tìm kiếm.");
   }, [searchQuery, drinks]);
 
   const fetchDrinks = async () => {
-    // In a real app, you would fetch from an API
     setLoading(true);
+    console.log("DrinksScreen: Bắt đầu fetchDrinks.");
     try {
-      // Simulate API call
-      setTimeout(() => {
-        setDrinks(mockDrinks);
-        setFilteredDrinks(mockDrinks);
-        setLoading(false);
-      }, 500);
+      console.log("DrinksScreen: Chuẩn bị lấy dữ liệu từ collection 'drinks'...");
+      const querySnapshot = await getDocs(collection(db, "douong"));
+      console.log(`DrinksScreen: Đã nhận querySnapshot. Số lượng tài liệu: ${querySnapshot.size}`);
+
+      const fetchedDrinks = [];
+      if (querySnapshot.empty) {
+        console.log("DrinksScreen: Collection 'drinks' rỗng hoặc không tìm thấy tài liệu nào.");
+      } else {
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log(`DrinksScreen: Đang xử lý tài liệu ID: ${doc.id}, Dữ liệu:`, data);
+          fetchedDrinks.push({
+            id: doc.id,
+            category: data.category,
+            description: data.description,
+            drinkname: data.drinkname,
+            image: data.image,
+            price: parseFloat(data.price),
+            quatiy: parseInt(data.quatiy),
+            start: parseFloat(data.start),
+            status: data.status,
+          });
+        });
+      }
+      console.log("DrinksScreen: Đã fetch xong, tổng số đồ uống:", fetchedDrinks.length);
+      setDrinks(fetchedDrinks);
+      setFilteredDrinks(fetchedDrinks);
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể tải danh sách đồ uống");
+      console.error("DrinksScreen: Lỗi khi fetch đồ uống:", error);
+      Alert.alert("Lỗi", `Không thể tải danh sách đồ uống từ Firestore: ${error.message}`);
+    } finally {
       setLoading(false);
+      console.log("DrinksScreen: Kết thúc fetchDrinks.");
     }
   };
 
@@ -97,11 +94,21 @@ const DrinksScreen = ({ navigation }) => {
       {
         text: "Xóa",
         style: "destructive",
-        onPress: () => {
-          // In a real app, call API to delete the drink
-          const updatedDrinks = drinks.filter((drink) => drink.id !== id);
-          setDrinks(updatedDrinks);
-          setFilteredDrinks(filteredDrinks.filter((drink) => drink.id !== id));
+        onPress: async () => {
+          setLoading(true);
+          console.log(`DrinksScreen: Bắt đầu xóa đồ uống với ID: ${id}`);
+          try {
+            await deleteDoc(doc(db, "drinks", id));
+            console.log(`DrinksScreen: Đã xóa thành công đồ uống ID: ${id}`);
+            Alert.alert("Thành công", "Đồ uống đã được xóa.");
+            fetchDrinks();
+          } catch (error) {
+            console.error(`DrinksScreen: Lỗi khi xóa đồ uống ID ${id}:`, error);
+            Alert.alert("Lỗi", `Không thể xóa đồ uống: ${error.message}`);
+          } finally {
+            setLoading(false);
+            console.log("DrinksScreen: Kết thúc quá trình xóa.");
+          }
         },
       },
     ]);
@@ -112,9 +119,12 @@ const DrinksScreen = ({ navigation }) => {
       style={styles.drinkItem}
       onPress={() => navigation.navigate("DrinkDetails", { drink: item })}
     >
-      <Image source={item.image} style={styles.drinkImage} />
+      <Image
+        source={{ uri: item.image }}
+        style={styles.drinkImage}
+      />
       <View style={styles.drinkInfo}>
-        <Text style={styles.drinkName}>{item.name}</Text>
+        <Text style={styles.drinkName}>{item.drinkname}</Text>
         <Text style={styles.drinkCategory}>{item.category}</Text>
         <Text style={styles.drinkPrice}>
           {item.price.toLocaleString("vi-VN")} đ
@@ -141,6 +151,7 @@ const DrinksScreen = ({ navigation }) => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#8B0000" />
+        <Text style={{ marginTop: 10 }}>Đang tải đồ uống...</Text>
       </View>
     );
   }
@@ -172,7 +183,8 @@ const DrinksScreen = ({ navigation }) => {
 
       {filteredDrinks.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Không tìm thấy đồ uống</Text>
+          <Text style={styles.emptyText}>Không tìm thấy đồ uống nào.</Text>
+          <Text style={styles.emptyText}>Vui lòng kiểm tra lại dữ liệu trên Firebase Firestore.</Text>
         </View>
       ) : (
         <FlatList
@@ -244,6 +256,7 @@ const styles = StyleSheet.create({
   drinkImage: {
     width: 100,
     height: 100,
+    resizeMode: 'cover',
   },
   drinkInfo: {
     flex: 1,
@@ -289,6 +302,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: "#757575",
+    textAlign: "center",
+    marginBottom: 5,
   },
 });
 

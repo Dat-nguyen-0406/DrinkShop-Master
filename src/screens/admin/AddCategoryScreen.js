@@ -1,16 +1,26 @@
+// src/screens/admin/AddCategoryScreen.js
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
   Alert,
-  ActivityIndicator 
+  ActivityIndicator,
+  Switch
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+// Import Firestore functions
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import app from '../../sever/firebase'; // Đảm bảo đường dẫn này đúng
+
+const db = getFirestore(app);
 
 const AddCategoryScreen = ({ navigation }) => {
   const [categoryName, setCategoryName] = useState('');
+  const [isActive, setIsActive] = useState(true); // Mặc định là active khi thêm mới
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddCategory = async () => {
@@ -21,20 +31,35 @@ const AddCategoryScreen = ({ navigation }) => {
 
     setIsSubmitting(true);
     try {
-      // In a real app, make an API call to add the category
-      // Simulating API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        Alert.alert('Thành công', 'Đã thêm danh mục mới', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]);
-      }, 1000);
+      console.log("AddCategoryScreen: Đang cố gắng thêm danh mục mới với tên:", categoryName.trim(), "và trạng thái active:", isActive);
+
+      // Tạo ID ngẫu nhiên theo yêu cầu của bạn (nhưng vẫn khuyến nghị dùng docRef.id)
+      const customId = Math.random().toString(36).substring(4, 15);
+
+      const docRef = await addDoc(collection(db, "danhmuc"), {
+        categoryName: categoryName.trim(), // <--- Giữ nguyên categoryName theo yêu cầu của bạn
+        id: customId, // <--- Giữ nguyên ID tự tạo theo yêu cầu của bạn
+       // Thêm thời gian cập nhật
+      });
+
+      console.log("AddCategoryScreen: Thêm danh mục thành công vào Firestore. ID tài liệu mới (Firestore generated):", docRef.id);
+      console.log("AddCategoryScreen: ID tùy chỉnh được lưu trong tài liệu:", customId);
+
+      Alert.alert('Thành công', 'Đã thêm danh mục mới vào Firebase!', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack() // Quay lại màn hình danh sách sau khi thêm
+        }
+      ]);
     } catch (error) {
+      console.error("AddCategoryScreen: Lỗi khi thêm danh mục vào Firestore:", error);
+      Alert.alert(
+        'Lỗi',
+        `Không thể thêm danh mục: ${error.message}. Vui lòng kiểm tra lại kết nối Firebase và quy tắc bảo mật (Security Rules) cho collection 'danhmuc' trên Firebase Console.`
+      );
+    } finally {
       setIsSubmitting(false);
-      Alert.alert('Lỗi', 'Không thể thêm danh mục');
+      console.log("AddCategoryScreen: Kết thúc quá trình thêm danh mục.");
     }
   };
 
@@ -43,11 +68,24 @@ const AddCategoryScreen = ({ navigation }) => {
       <Text style={styles.label}>Tên danh mục</Text>
       <TextInput
         style={styles.input}
+        placeholder="Nhập tên danh mục"
         value={categoryName}
         onChangeText={setCategoryName}
-        placeholder="Nhập tên danh mục mới"
-        autoCapitalize="none"
+        editable={!isSubmitting} // Không cho chỉnh sửa khi đang submit
+        // Đảm bảo TextInput hỗ trợ tiếng Việt, thường là mặc định
+        // Nếu không, hãy kiểm tra cài đặt bàn phím trên thiết bị/emulator.
       />
+
+      <View style={styles.switchContainer}>
+        <Text style={styles.label}>Trạng thái hoạt động</Text>
+        <Switch
+          trackColor={{ false: "#767577", true: "#8B0000" }}
+          thumbColor={isActive ? "#ffffff" : "#f4f3f4"}
+          onValueChange={setIsActive}
+          value={isActive}
+          disabled={isSubmitting} // Không cho chỉnh sửa khi đang submit
+        />
+      </View>
 
       <TouchableOpacity
         style={styles.submitButton}
@@ -82,17 +120,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
   },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
   submitButton: {
     backgroundColor: '#8B0000',
-    borderRadius: 8,
     padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   submitButtonText: {
     color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
-    fontSize: 16,
   },
 });
 
