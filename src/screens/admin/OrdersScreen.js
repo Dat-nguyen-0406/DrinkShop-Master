@@ -31,6 +31,7 @@ const OrdersScreen = ({ navigation }) => {
     if (isFocused) {
       setIsLoading(true);
       const ordersRef = collection(db, 'orders');
+      
       // Lắng nghe thay đổi theo thời gian thực với onSnapshot
       // Sắp xếp đơn hàng theo thời gian tạo mới nhất
       const q = query(ordersRef, orderBy('createdAt', 'desc'));
@@ -49,7 +50,7 @@ const OrdersScreen = ({ navigation }) => {
             ...data,
             createdAt: createdAt, // Đảm bảo createdAt là số
             customer: data.userName || 'Khách hàng', // Dùng userName nếu có, không thì mặc định
-            phone: data.userPhone || 'N/A', // Thêm trường userPhone nếu có
+            phone: data.phone || 'N/A', // Thêm trường userPhone nếu có
             items: data.items || [], // Đảm bảo có mảng items
             // Map status from Firestore to display text
             // Assuming Firestore statuses are like "Đang xử lý", "Đang giao", "Đã hoàn thành", "Đã hủy"

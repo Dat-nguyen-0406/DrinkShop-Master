@@ -20,7 +20,16 @@ const CartStack = createStackNavigator();
 const ProfileStack = createStackNavigator();
 
 const HomeStackScreen = () => (
-  <HomeStack.Navigator>
+  <HomeStack.Navigator
+   screenOptions={{
+        headerStyle: {
+          backgroundColor: "#8B0000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}>
     <HomeStack.Screen
       name="Home"
       component={HomeScreen}
@@ -45,7 +54,16 @@ const HomeStackScreen = () => (
 );
 
 const SearchStackScreen = () => (
-  <SearchStack.Navigator>
+  <SearchStack.Navigator
+   screenOptions={{
+        headerStyle: {
+          backgroundColor: "#8B0000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}>
     <SearchStack.Screen
       name="Search"
       component={SearchScreen}
@@ -65,7 +83,15 @@ const SearchStackScreen = () => (
 );
 
 const CartStackScreen = () => (
-  <CartStack.Navigator>
+  <CartStack.Navigator screenOptions={{
+        headerStyle: {
+          backgroundColor: "#8B0000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}>
     <CartStack.Screen
       name="Cart"
       component={CartScreen}
@@ -75,7 +101,16 @@ const CartStackScreen = () => (
 );
 
 const ProfileStackScreen = () => (
-  <ProfileStack.Navigator>
+  <ProfileStack.Navigator
+   screenOptions={{
+        headerStyle: {
+          backgroundColor: "#8B0000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}>
     <ProfileStack.Screen
       name="Profile"
       component={ProfileScreen}

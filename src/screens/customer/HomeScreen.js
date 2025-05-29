@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { app, db } from "../../sever/firebase"; // Đảm bảo import db từ file firebase
+import { app, db } from "../../sever/firebase";
 import { collection, getDocs, getFirestore } from "firebase/firestore";
 import {
   View,
@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native"; // Thêm useIsFocused
 
 const HomeScreen = () => {
   const [coffeeItems, setCoffeeItems] = useState([]);
@@ -23,69 +23,78 @@ const HomeScreen = () => {
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [categories, setCategories] = useState([]); // Chuyển categories thành state
+  const [categories, setCategories] = useState([]);
   const navigation = useNavigation();
+  const isFocused = useIsFocused(); // Khai báo useIsFocused
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // const db = getFirestore(app); // db đã được import từ firebase.js
+  // Hàm để fetch tất cả dữ liệu cần thiết cho Home Screen
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    console.log("HomeScreen: Bắt đầu fetchData.");
+    try {
+      // Fetch categories
+      const categorySnapshot = await getDocs(collection(db, "danhmuc"));
+      const fetchedCategories = categorySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().categoryName,
+      }));
+      setCategories([{ id: "all", name: "Tất cả" }, ...fetchedCategories]);
 
-        // Fetch categories
-        const categorySnapshot = await getDocs(collection(db, "danhmuc"));
-        const fetchedCategories = categorySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().categoryName, // Giả định trường tên là 'categoryName'
-        }));
-        // Thêm "Tất cả" vào đầu danh sách danh mục
-        setCategories([{ id: "all", name: "Tất cả" }, ...fetchedCategories]);
+      // Fetch coffee items
+      const coffeeSnapshot = await getDocs(collection(db, "douong"));
+      const coffeeItemsData = coffeeSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setCoffeeItems(coffeeItemsData);
+      setFilteredItems(coffeeItemsData);
 
-
-        // Fetch coffee items
-        const coffeeSnapshot = await getDocs(collection(db, "douong"));
-        const coffeeItems = coffeeSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setCoffeeItems(coffeeItems);
-        setFilteredItems(coffeeItems);
-
-        // Fetch header data
-        const headerSnapshot = await getDocs(collection(db, "photo"));
-        if (!headerSnapshot.empty) {
-          const headerDoc = headerSnapshot.docs[0].data();
-          setHeaderData({
-            title: headerDoc.title || "Cà phê chất lượng",
-            image: headerDoc.Image || "https://via.placeholder.com/400x200",
+      // Fetch header data
+      const headerSnapshot = await getDocs(collection(db, "photo"));
+      if (!headerSnapshot.empty) {
+        const headerDoc = headerSnapshot.docs[0].data();
+        setHeaderData({
+          title: headerDoc.title || "Cà phê chất lượng",
+          image: headerDoc.Image || "https://via.placeholder.com/400x200",
+        });
+      } else {
+         setHeaderData({
+            title: "Cà phê chất lượng",
+            image: "https://via.placeholder.com/400x200", // Fallback mặc định
           });
-        }
-
-        setPromotions([
-          {
-            id: 1,
-            text: "Giảm 20%",
-            description: "Cho đơn hàng đầu tiên",
-            image:
-              "https://media.istockphoto.com/id/1344512181/vi/vec-to/bi%E1%BB%83u-t%C6%B0%E1%BB%A3ng-loa-m%C3%A0u-%C4%91%E1%BB%8F.jpg?s=612x612&w=0&k=20&c=t8xmvCQKhdqmyG2ify0vXMIgK5ty7IpOyicWE-Rrpzg=",
-          },
-        ]);
-      } catch (err) {
-        console.error("Firestore error:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchData();
-  }, []);
+      setPromotions([
+        {
+          id: 1,
+          text: "Giảm 20%",
+          description: "Cho đơn hàng đầu tiên",
+          image:
+            "https://media.istockphoto.com/id/1344512181/vi/vec-to/bi%E1%BB%83u-t%C6%B0%E1%BB%A3ng-loa-m%C3%A0u-%C4%91%E1%BB%8F.jpg?s=612x612&w=0&k=20&c=t8xmvCQKhdqmyG2ify0vXMIgK5ty7IpOyicWE-Rrpzg=",
+        },
+      ]);
+    } catch (err) {
+      console.error("HomeScreen: Lỗi Firestore:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      console.log("HomeScreen: Kết thúc fetchData.");
+    }
+  };
+
+  // Sử dụng useIsFocused để gọi fetchData khi màn hình được focus
+  useEffect(() => {
+    if (isFocused) {
+      console.log("HomeScreen: Màn hình đang được focus, gọi fetchData.");
+      fetchData();
+    }
+  }, [isFocused]); // Dependency array bao gồm isFocused
 
   // Hàm lọc sản phẩm theo category và search text
   useEffect(() => {
     let result = coffeeItems;
 
-    // Lọc theo search text trước
     if (searchText.trim()) {
       result = result.filter((item) =>
         item.drinkname &&
@@ -93,37 +102,27 @@ const HomeScreen = () => {
       );
     }
 
-    // Lọc theo category
     if (selectedCategory && selectedCategory.id !== "all") {
       result = result.filter((item) => {
-        // Kiểm tra category của item có tồn tại và khớp với category đã chọn không
         return item.category && item.category.trim().toLowerCase() === selectedCategory.name.trim().toLowerCase();
       });
     }
 
     setFilteredItems(result);
+    console.log("HomeScreen: Cập nhật danh sách lọc hoặc tìm kiếm.");
   }, [selectedCategory, searchText, coffeeItems]);
 
   const renderCategoryHeader = () => (
     <View style={styles.headerContainer}>
       {headerData ? (
         <>
+         
           <Text style={styles.mainTitle}>{headerData.title}</Text>
           <Image
             source={{ uri: headerData.image }}
             style={styles.headerImage}
             resizeMode="cover"
           />
-
-          {/* Phần tìm kiếm */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Tìm kiếm đồ uống..."
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-          </View>
 
           {/* Phần danh mục */}
           <View style={styles.categorySection}>
@@ -292,12 +291,16 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginVertical: 10,
-  },
-  searchInput: {
-    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 8,
+    paddingRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
     paddingHorizontal: 15,
     fontSize: 16,
   },

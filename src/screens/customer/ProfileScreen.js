@@ -14,37 +14,44 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native"; // Thêm useIsFocused
 
-// Đường dẫn này phải đúng với cấu trúc thư mục của bạn
 const ProfileScreen = () => {
   const { logout } = useAuth();
   const [userData, setUserData] = useState({});
   const [showBadge, setShowBadge] = useState(true);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const navigation = useNavigation();
-  
-  useEffect(() => {
-    // Lấy thông tin người dùng từ AsyncStorage khi component mount
-   const fetchUserData = async () => {
+  const isFocused = useIsFocused(); // Khai báo useIsFocused
+
+  // Hàm để fetch thông tin người dùng từ AsyncStorage
+  const fetchUserData = async () => {
     try {
       const userDataString = await AsyncStorage.getItem("userData");
       if (userDataString) {
         const parsed = JSON.parse(userDataString);
-        console.log("userData from AsyncStorage:", parsed);  // <-- thêm dòng này
+        console.log("ProfileScreen: userData from AsyncStorage:", parsed);
         setUserData(parsed);
+      } else {
+        setUserData({}); // Đặt lại nếu không có dữ liệu
       }
     } catch (error) {
-      console.log("Lỗi khi lấy thông tin người dùng:", error);
+      console.log("ProfileScreen: Lỗi khi lấy thông tin người dùng:", error);
+      setUserData({}); // Đặt lại nếu có lỗi
     }
   };
-    fetchUserData();
 
-    // Giả lập có thông báo mới
-    setTimeout(() => {
-      setShowBadge(false);
-    }, 5000);
-  }, []);
+  // Sử dụng useIsFocused để gọi fetchUserData khi màn hình được focus
+  useEffect(() => {
+    if (isFocused) {
+      console.log("ProfileScreen: Màn hình đang được focus, gọi fetchUserData.");
+      fetchUserData();
+      // Giả lập có thông báo mới (bạn có thể thay thế bằng logic thực tế của mình)
+      setTimeout(() => {
+        setShowBadge(false);
+      }, 5000);
+    }
+  }, [isFocused]);
 
   const handleLogout = async () => {
     try {

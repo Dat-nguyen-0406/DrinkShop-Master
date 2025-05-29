@@ -131,7 +131,16 @@ export const DrinksStackNavigator = () => {
 
 export const OrdersStackNavigator = () => {
   return (
-    <OrdersStack.Navigator>
+    <OrdersStack.Navigator
+     screenOptions={{
+        headerStyle: {
+          backgroundColor: "#8B0000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}>
       <OrdersStack.Screen
         name="OrdersList"
         component={OrdersScreen}

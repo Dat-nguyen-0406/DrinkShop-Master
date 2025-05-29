@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 import { useAuth } from "../../context/AuthContext";
-
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -32,9 +32,26 @@ const DashboardScreen = ({ navigation }) => { // Thêm navigation nếu bạn mu
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+   useFocusEffect(
+    useCallback(() => {
+      console.log("DashboardScreen được focus, tải lại dữ liệu ban đầu và thiết lập interval.");
+      fetchDashboardData(); // Tải dữ liệu ngay khi màn hình được focus
 
+      // Thiết lập interval để tự động cập nhật định kỳ (ví dụ: mỗi 1 phút)
+      const intervalId = setInterval(() => {
+        console.log("Tự động cập nhật dữ liệu dashboard định kỳ...");
+        fetchDashboardData();
+      }, 60000); // 60000 ms = 1 phút
+
+      // Cleanup function
+      return () => {
+        console.log("DashboardScreen bị blur hoặc unmount, xóa interval.");
+        clearInterval(intervalId); // Xóa interval khi màn hình không còn focus
+      };
+    }, [])
+  );
   useEffect(() => {
-    fetchDashboardData();
+      fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
