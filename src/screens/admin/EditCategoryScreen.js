@@ -1,30 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
   Alert,
   ActivityIndicator,
   Switch
 } from 'react-native';
 
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { app, db } from '../../sever/firebase'; // Đảm bảo đường dẫn và import 'db' chính xác
+
 const EditCategoryScreen = ({ route, navigation }) => {
-  const { category } = route.params;
+  const { category } = route.params; // category should contain the id, name, and isActive status
   const [categoryName, setCategoryName] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load category data
-    if (category) {
-      setCategoryName(category.name);
-      setIsActive(category.active);
-      setIsLoading(false);
-    }
-  }, [category]);
+    const fetchCategoryDetails = async () => {
+      try {
+        if (!category || !category.id) {
+          Alert.alert("Lỗi", "Không tìm thấy thông tin danh mục.");
+          navigation.goBack();
+          return;
+        }
+
+        const categoryRef = doc(db, "danhmuc", category.id);
+        const docSnap = await getDoc(categoryRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setCategoryName(data.categoryName || ''); // Assuming field name is 'categoryName'
+          setIsActive(data.isActive === undefined ? true : data.isActive); // Default to true if not set
+        } else {
+          Alert.alert("Lỗi", "Không tìm thấy danh mục này trong cơ sở dữ liệu.");
+          navigation.goBack();
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải chi tiết danh mục:", error);
+        Alert.alert("Lỗi", "Không thể tải chi tiết danh mục. Vui lòng thử lại.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategoryDetails();
+  }, [category.id, navigation]); // Dependency array to re-run if category ID changes
 
   const handleUpdateCategory = async () => {
     if (!categoryName.trim()) {
@@ -34,20 +59,23 @@ const EditCategoryScreen = ({ route, navigation }) => {
 
     setIsSubmitting(true);
     try {
-      // In a real app, make an API call to update the category
-      // Simulating API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        Alert.alert('Thành công', 'Đã cập nhật danh mục', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]);
-      }, 1000);
+      const categoryRef = doc(db, "danhmuc", category.id);
+      await updateDoc(categoryRef, {
+        categoryName: categoryName,
+        isActive: isActive,
+      });
+
+      Alert.alert('Thành công', 'Đã cập nhật danh mục', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack()
+        }
+      ]);
     } catch (error) {
+      console.error("Lỗi khi cập nhật danh mục:", error);
+      Alert.alert('Lỗi', 'Không thể cập nhật danh mục. Vui lòng thử lại.');
+    } finally {
       setIsSubmitting(false);
-      Alert.alert('Lỗi', 'Không thể cập nhật danh mục');
     }
   };
 
@@ -55,6 +83,7 @@ const EditCategoryScreen = ({ route, navigation }) => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#8B0000" />
+        <Text>Đang tải danh mục...</Text>
       </View>
     );
   }

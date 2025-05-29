@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import app from "../../sever/firebase";
+import { app, db } from "../../sever/firebase"; // Đảm bảo import db từ file firebase
 import { collection, getDocs, getFirestore } from "firebase/firestore";
 import {
   View,
@@ -23,30 +23,34 @@ const HomeScreen = () => {
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categories, setCategories] = useState([]); // Chuyển categories thành state
   const navigation = useNavigation();
-
-  const categories = ["Tất cả", "Cafe", "Trà", "Nước ép","Sinh tố","Trà sữa", "Khác"];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const db = getFirestore(app);
+        // const db = getFirestore(app); // db đã được import từ firebase.js
+
+        // Fetch categories
+        const categorySnapshot = await getDocs(collection(db, "danhmuc"));
+        const fetchedCategories = categorySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          name: doc.data().categoryName, // Giả định trường tên là 'categoryName'
+        }));
+        // Thêm "Tất cả" vào đầu danh sách danh mục
+        setCategories([{ id: "all", name: "Tất cả" }, ...fetchedCategories]);
+
 
         // Fetch coffee items
-       const coffeeSnapshot = await getDocs(collection(db, "douong"));
-      const coffeeItems = coffeeSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      
-      setCoffeeItems(coffeeItems);
-      setFilteredItems(coffeeItems);
-      
-      // Debug categories - thêm dòng này
-      console.log('All items with categories:');
-      coffeeItems.forEach(item => {
-        console.log(`${item.drinkname}: "${item.category}"`);
-      });
+        const coffeeSnapshot = await getDocs(collection(db, "douong"));
+        const coffeeItems = coffeeSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setCoffeeItems(coffeeItems);
+        setFilteredItems(coffeeItems);
+
         // Fetch header data
         const headerSnapshot = await getDocs(collection(db, "photo"));
         if (!headerSnapshot.empty) {
@@ -62,8 +66,8 @@ const HomeScreen = () => {
             id: 1,
             text: "Giảm 20%",
             description: "Cho đơn hàng đầu tiên",
-            image:"https://media.istockphoto.com/id/1344512181/vi/vec-to/bi%E1%BB%83u-t%C6%B0%E1%BB%A3ng-loa-m%C3%A0u-%C4%91%E1%BB%8F.jpg?s=612x612&w=0&k=20&c=t8xmvCQKhdqmyG2ify0vXMIgK5ty7IpOyicWE-Rrpzg=",
-              
+            image:
+              "https://media.istockphoto.com/id/1344512181/vi/vec-to/bi%E1%BB%83u-t%C6%B0%E1%BB%A3ng-loa-m%C3%A0u-%C4%91%E1%BB%8F.jpg?s=612x612&w=0&k=20&c=t8xmvCQKhdqmyG2ify0vXMIgK5ty7IpOyicWE-Rrpzg=",
           },
         ]);
       } catch (err) {
@@ -78,42 +82,27 @@ const HomeScreen = () => {
   }, []);
 
   // Hàm lọc sản phẩm theo category và search text
- useEffect(() => {
-  let result = coffeeItems;
+  useEffect(() => {
+    let result = coffeeItems;
 
-  // Lọc theo search text trước
-  if (searchText.trim()) {
-    result = result.filter(item =>
-      item.drinkname &&
-      item.drinkname.toLowerCase().includes(searchText.toLowerCase().trim())
-    );
-  }
+    // Lọc theo search text trước
+    if (searchText.trim()) {
+      result = result.filter((item) =>
+        item.drinkname &&
+        item.drinkname.toLowerCase().includes(searchText.toLowerCase().trim())
+      );
+    }
 
+    // Lọc theo category
+    if (selectedCategory && selectedCategory.id !== "all") {
+      result = result.filter((item) => {
+        // Kiểm tra category của item có tồn tại và khớp với category đã chọn không
+        return item.category && item.category.trim().toLowerCase() === selectedCategory.name.trim().toLowerCase();
+      });
+    }
 
-   if (selectedCategory && selectedCategory !== "Tất cả") {
-    result = result.filter(item => {
-      if (!item.category) return false;
-      
-      const itemCategory = item.category.trim().toLowerCase();
-      const selectedCat = selectedCategory.trim().toLowerCase();
-      
-      // Debug: In ra để kiểm tra
-      console.log('Item category:', itemCategory, 'Selected:', selectedCat);
-      
-      return itemCategory === selectedCat;
-    });
-  }
-  
-  setFilteredItems(result);
-}, [selectedCategory, searchText, coffeeItems]);
-
-
-const debugCategories = () => {
-  console.log('All categories in data:');
-  const uniqueCategories = [...new Set(coffeeItems.map(item => item.category?.trim()))];
-  uniqueCategories.forEach(cat => console.log(`"${cat}"`));
-};
-
+    setFilteredItems(result);
+  }, [selectedCategory, searchText, coffeeItems]);
 
   const renderCategoryHeader = () => (
     <View style={styles.headerContainer}>
@@ -126,33 +115,44 @@ const debugCategories = () => {
             resizeMode="cover"
           />
 
-         
+          {/* Phần tìm kiếm */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tìm kiếm đồ uống..."
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+          </View>
 
           {/* Phần danh mục */}
           <View style={styles.categorySection}>
             <Text style={styles.sectionTitle}>Danh mục</Text>
             <View style={styles.categoryGrid}>
-              {categories.map((category) => (
+              {categories.map((cat) => (
                 <TouchableOpacity
-                  key={category}
+                  key={cat.id}
                   style={[
                     styles.categoryItem,
-                    selectedCategory === category ||
-                    (category === "Tất cả" && !selectedCategory)
+                    selectedCategory?.id === cat.id ||
+                    (cat.id === "all" && !selectedCategory)
                       ? styles.selectedCategoryItem
                       : null,
                   ]}
-                  onPress={() =>
-                    setSelectedCategory(category === "Tất cả" ? null : category)
-                  }
+                  onPress={() => setSelectedCategory(cat)}
                 >
-                 <Text
-                  style={[
-                  styles.categoryText,
-                   selectedCategory === category ||
-                   (category === "Tất cả" && !selectedCategory)
-                   ? styles.selectedCategoryText  : null      ]}> {category}
-                 </Text>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      selectedCategory?.id === cat.id ||
+                      (cat.id === "all" && !selectedCategory)
+                        ? styles.selectedCategoryText
+                        : null,
+                    ]}
+                  >
+                    {" "}
+                    {cat.name}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   selectedCategoryText: {
-  color: "white",
+    color: "white",
   },
   itemContainer: {
     marginBottom: 15,

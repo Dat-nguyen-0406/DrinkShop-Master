@@ -1,84 +1,119 @@
-
 // src/screens/admin/EditDrinkScreen.js
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Switch, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+// Import các hàm cần thiết từ firebase.js của bạn
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import app from '../../sever/firebase'; // Đảm bảo đường dẫn này chính xác
+
+const db = getFirestore(app); // Khởi tạo db
 
 const EditDrinkScreen = ({ route, navigation }) => {
-  const { drinkId } = route.params || { drinkId: '1' }; // Default for testing
+  const { drinkId } = route.params || {}; // Không gán ID mặc định
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  
-  // Example categories
-  const categories = [
-    { id: 'coffee', name: 'Cà phê' },
-    { id: 'tea', name: 'Trà' },
-    { id: 'milktea', name: 'Trà sữa' },
-    { id: 'smoothie', name: 'Sinh tố' },
-    { id: 'juice', name: 'Nước ép' },
-  ];
+  const [quatiy, setQuatiy] = useState('');
+  const [start, setStart] = useState('');
+  const [status, setStatus] = useState('');
+  const [active, setActive] = useState(false); // Thêm state cho trạng thái active
+  const [categories, setCategories] = useState([]); // State để lưu danh mục từ Firestore
 
-  // Simulate fetching drink data
   useEffect(() => {
-    const fetchDrinkData = async () => {
+   const fetchDrinkAndCategories = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Dummy data
-        const drinkData = {
-          id: drinkId,
-          name: 'Cà phê sữa đá',
-          price: '29000',
-          description: 'Cà phê đậm đà hòa quyện với sữa đặc và đá, tạo nên hương vị thơm ngon khó cưỡng.',
-          category: 'coffee',
-          imageUrl: 'https://via.placeholder.com/200',
-        };
-        
-        // Set state with fetched data
-        setName(drinkData.name);
-        setPrice(drinkData.price);
-        setDescription(drinkData.description);
-        setCategory(drinkData.category);
-        setImageUrl(drinkData.imageUrl);
+        // Fetch Categories
+        const categorySnapshot = await getDocs(collection(db, "danhmuc"));
+        const fetchedCategories = categorySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().categoryName // Đảm bảo trường tên danh mục là 'name'
+        }));
+        setCategories(fetchedCategories);
+
+        // Fetch drink data
+        if (drinkId) {
+          // *** SỬA TÊN COLLECTION TẠI ĐÂY: từ 'drinks' thành 'douong' ***
+          const docRef = doc(db, 'douong', drinkId); // <--- SỬA TẠY ĐÂY
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setName(data.drinkname || '');
+            setPrice(String(data.price || ''));
+            setDescription(data.description || '');
+            setCategory(data.category || '');
+            setImageUrl(data.image || '');
+            setQuatiy(String(data.quatiy || ''));
+            setStart(String(data.start || ''));
+            setStatus(data.status || '');
+            setActive(data.active !== undefined ? data.active : false);
+          } else {
+            Alert.alert("Lỗi", "Không tìm thấy đồ uống để sửa.");
+            navigation.goBack();
+          }
+        }
       } catch (error) {
-        console.error('Error fetching drink data:', error);
-        alert('Không thể tải thông tin đồ uống!');
+        console.error("Lỗi khi tải dữ liệu:", error);
+        Alert.alert("Lỗi", `Không thể tải dữ liệu: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchDrinkData();
-  }, [drinkId]);
 
-  const handleUpdateDrink = () => {
-    // Validate inputs
-    if (!name || !price || !description || !category) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+    fetchDrinkAndCategories();
+  }, [drinkId, navigation]);
+
+  const handleUpdateDrink = async () => {
+    if (!name.trim() || !price.trim() || !category.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ các trường Tên, Giá và Danh mục.');
       return;
     }
-    
-    // Here you would typically call an API to update the drink
-    console.log('Updating drink:', { id: drinkId, name, price, description, category, imageUrl });
-    
-    // Navigate back to drinks list
-    alert('Đã cập nhật đồ uống thành công!');
-    navigation.goBack();
+
+    setIsSubmitting(true);
+    try {
+      // *** SỬA TÊN COLLECTION TẠI ĐÂY: từ 'drinks' thành 'douong' ***
+      const drinkRef = doc(db, 'douong', drinkId); // <--- SỬA TẠI ĐÂY
+      await updateDoc(drinkRef, {
+        drinkname: name,
+        price: parseFloat(price),
+        description: description,
+        category: category,
+        image: imageUrl, // Giữ nguyên URL ảnh hoặc cho phép người dùng thay đổi
+        quatiy: parseInt(quatiy),
+        start: parseFloat(start),
+        status: status,
+        active: active,
+      });
+      Alert.alert('Thành công', 'Đã cập nhật đồ uống thành công!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      console.error("Lỗi khi cập nhật đồ uống:", error);
+      Alert.alert('Lỗi', `Không thể cập nhật đồ uống: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
+  // Hàm xử lý chọn ảnh (giả định)
+  const handleImagePick = () => {
+    Alert.alert("Tính năng chọn ảnh", "Tính năng này cần tích hợp ImagePicker.");
+    // Thực tế sẽ dùng ImagePicker để chọn/chụp ảnh và upload lên Firebase Storage
+    // Sau đó cập nhật imageUrl state
+  };
+
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#8B0000" />
-        <Text style={styles.loadingText}>Đang tải thông tin...</Text>
+        <Text style={{ marginTop: 10 }}>Đang tải dữ liệu đồ uống...</Text>
       </View>
     );
   }
@@ -90,17 +125,26 @@ const EditDrinkScreen = ({ route, navigation }) => {
           <Image source={{ uri: imageUrl }} style={styles.drinkImage} />
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={60} color="#ccc" />
-            <Text style={styles.placeholderText}>Chưa có hình ảnh</Text>
+            <Ionicons name="image" size={50} color="#ccc" />
+            <Text style={styles.placeholderText}>Chưa có ảnh</Text>
           </View>
         )}
-        <TouchableOpacity style={styles.uploadButton}>
-          <Text style={styles.uploadButtonText}>Thay đổi hình ảnh</Text>
+        <TouchableOpacity style={styles.uploadButton} onPress={handleImagePick}>
+          <Text style={styles.uploadButtonText}>Chọn ảnh</Text>
         </TouchableOpacity>
       </View>
-
+       <View style={styles.formGroup}>
+        <Text style={styles.label}>Địa chỉ ảnh (URL):</Text>
+        <TextInput
+          style={styles.input}
+          value={imageUrl}
+          onChangeText={setImageUrl}
+          placeholder="Nhập địa chỉ ảnh URL"
+          keyboardType="url"
+        />
+      </View>
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Tên đồ uống</Text>
+        <Text style={styles.label}>Tên đồ uống:</Text>
         <TextInput
           style={styles.input}
           value={name}
@@ -110,7 +154,7 @@ const EditDrinkScreen = ({ route, navigation }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Giá (VNĐ)</Text>
+        <Text style={styles.label}>Giá:</Text>
         <TextInput
           style={styles.input}
           value={price}
@@ -121,49 +165,87 @@ const EditDrinkScreen = ({ route, navigation }) => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Danh mục</Text>
+        <Text style={styles.label}>Mô tả:</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Nhập mô tả"
+          multiline
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Danh mục:</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={category}
             onValueChange={(itemValue) => setCategory(itemValue)}
-            style={styles.picker}
           >
-            {categories.map(cat => (
-              <Picker.Item key={cat.id} label={cat.name} value={cat.id} />
-            ))}
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <Picker.Item key={cat.id} label={cat.name} value={cat.name} />
+              ))
+            ) : (
+              <Picker.Item label="Đang tải danh mục..." value="" />
+            )}
           </Picker>
         </View>
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Mô tả</Text>
+        <Text style={styles.label}>Số lượng:</Text>
         <TextInput
-          style={[styles.input, styles.textArea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Nhập mô tả đồ uống"
-          multiline
-          numberOfLines={4}
+          style={styles.input}
+          value={quatiy}
+          onChangeText={setQuatiy}
+          placeholder="Nhập số lượng"
+          keyboardType="numeric"
         />
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.updateButton} 
-          onPress={handleUpdateDrink}
-        >
-          <Text style={styles.buttonText}>Cập nhật</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={() => {
-            alert('Chức năng xóa đang được phát triển');
-          }}
-        >
-          <Text style={styles.buttonText}>Xóa đồ uống</Text>
-        </TouchableOpacity>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Điểm bắt đầu:</Text>
+        <TextInput
+          style={styles.input}
+          value={start}
+          onChangeText={setStart}
+          placeholder="Nhập điểm bắt đầu"
+          keyboardType="numeric"
+        />
       </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Trạng thái:</Text>
+        <TextInput
+          style={styles.input}
+          value={status}
+          onChangeText={setStatus}
+          placeholder="Nhập trạng thái (ví dụ: 'Còn hàng', 'Hết hàng')"
+        />
+      </View>
+
+      <View style={styles.switchContainer}>
+        <Text style={styles.label}>Hoạt động:</Text>
+        <Switch
+          trackColor={{ false: "#767577", true: "#8B0000" }}
+          thumbColor={active ? "#ffffff" : "#f4f3f4"}
+          onValueChange={setActive}
+          value={active}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleUpdateDrink}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Text style={styles.submitButtonText}>Cập nhật đồ uống</Text>
+        )}
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -171,17 +253,13 @@ const EditDrinkScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
+    padding: 16,
   },
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
   },
   imageContainer: {
     alignItems: 'center',
@@ -192,6 +270,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     marginBottom: 10,
+    resizeMode: 'cover',
   },
   imagePlaceholder: {
     width: 200,
@@ -240,29 +319,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 5,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
   },
-  picker: {
-    height: 50,
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  buttonContainer: {
-    marginVertical: 20,
-  },
-  updateButton: {
+  submitButton: {
     backgroundColor: '#8B0000',
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
   },
-  deleteButton: {
-    backgroundColor: '#D32F2F',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
+   formGroup: {
+    marginBottom: 20,
   },
-  buttonText: {
-    color: '#fff',
+   label: {
     fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#333',
+  },
+   input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });

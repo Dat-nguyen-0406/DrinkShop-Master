@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Đã bỏ 'use' thừa
 import {
   View,
   Text,
@@ -20,9 +20,31 @@ import {
   query,
   where,
   onSnapshot,
+  // namedQuery, // Loại bỏ namedQuery nếu không dùng
 } from "firebase/firestore";
 import app from "../../sever/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+//phương thức thanh toán
+const Option = ({ name, selected, onSelect, image }) => {
+  return (
+    <TouchableOpacity
+      style={[styles.paymentOption, selected && styles.selectedPaymentOption]}
+      onPress={onSelect}
+    >
+      {image && <Image source={image} style={styles.paymentImage}></Image>}
+      <Text style={styles.paymentOptionText}>{name}</Text>
+      {selected && (
+        <FontAwesome
+          name="check-circle"
+          size={20}
+          color="#6F4E37"
+          style={styles.paymentCheckIcon}
+        ></FontAwesome>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 const OptionSelector = ({ label, selectedValue, onSelect }) => {
   const options = ["0%", "30%", "50%", "70%", "100%"];
@@ -56,12 +78,15 @@ const OptionSelector = ({ label, selectedValue, onSelect }) => {
 };
 
 const ReviewItem = ({ review }) => {
+  // Đảm bảo review.createdAt là một timestamp hoặc Firestore Timestamp
+  const reviewDate = review.createdAt?.toDate ? new Date(review.createdAt.toDate()) : (review.createdAt ? new Date(review.createdAt) : null);
+
   return (
     <View style={styles.reviewItem}>
       <View style={styles.reviewHeader}>
         <Text style={styles.reviewUser}>{review.userName || "Khách hàng"}</Text>
         <Text style={styles.reviewDate}>
-          {new Date(review.createdAt?.toDate()).toLocaleDateString("vi-VN")}
+          {reviewDate ? reviewDate.toLocaleDateString("vi-VN") : 'N/A'}
         </Text>
       </View>
       <View style={styles.ratingStars}>
@@ -93,12 +118,43 @@ const OrderScreen = () => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [reviews, setReviews] = useState([]);
-  const [userName, setUserName] = useState("Nguyễn Thành Đạt"); // Lấy từ user data thực tế
+
+  // THAY THẾ 'userName' và thêm 'userId' để lấy thông tin từ AsyncStorage
+  const [loggedInUserName, setLoggedInUserName] = useState("Khách hàng");
+  const [loggedInUserId, setLoggedInUserId] = useState(null);
+
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+
+  // Load thông tin người dùng từ AsyncStorage khi component mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userDataString = await AsyncStorage.getItem("userData");
+        if (userDataString) {
+          const parsedUserData = JSON.parse(userDataString);
+          // Đảm bảo lấy 'fullname' nếu có, fallback về 'name' hoặc 'Khách hàng'
+          setLoggedInUserName(parsedUserData.fullname || parsedUserData.name || "Khách hàng");
+          setLoggedInUserId(parsedUserData.id || null);
+        } else {
+          setLoggedInUserName("Khách hàng");
+          setLoggedInUserId(null);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin người dùng từ AsyncStorage:", error);
+        setLoggedInUserName("Khách hàng");
+        setLoggedInUserId(null);
+      }
+    };
+    loadUserData();
+  }, []);
 
   //cập nhập để xử lý khi từ giỏ hàng chuyển sang
   useEffect(() => {
     const fetchDrinkDetails = async () => {
       try {
+        const db = getFirestore(app);
+        let currentDrink = null;
+
         // Nếu có cartItem từ giỏ hàng thì sử dụng thông tin đó
         if (route.params?.cartItem) {
           const { cartItem } = route.params;
@@ -106,29 +162,41 @@ const OrderScreen = () => {
           setIceLevel(cartItem.iceLevel);
           setSugarLevel(cartItem.sugarLevel);
 
-          const db = getFirestore(app);
           const drinkRef = doc(db, "douong", cartItem.id.toString());
           const drinkSnap = await getDoc(drinkRef);
 
           if (drinkSnap.exists()) {
-            setDrink({ id: drinkSnap.id, ...drinkSnap.data() });
+            currentDrink = { id: drinkSnap.id, ...drinkSnap.data() };
+            setDrink(currentDrink);
           } else {
-            Alert.alert("Lỗi", "Không tìm thấy đồ uống");
+            Alert.alert("Lỗi", "Không tìm thấy đồ uống trong CSDL!");
             navigation.goBack();
+            return; // Thoát sớm nếu không tìm thấy đồ uống
           }
-        } else {
-          // Nếu không phải từ giỏ hàng thì load như bình thường
-          const db = getFirestore(app);
+        } else if (drinkId) { // Nếu không phải từ giỏ hàng thì load như bình thường bằng drinkId
           const drinkRef = doc(db, "douong", drinkId.toString());
           const drinkSnap = await getDoc(drinkRef);
 
           if (drinkSnap.exists()) {
-            setDrink({ id: drinkSnap.id, ...drinkSnap.data() });
+            currentDrink = { id: drinkSnap.id, ...drinkSnap.data() };
+            setDrink(currentDrink);
           } else {
-            Alert.alert("Lỗi", "Không tìm thấy đồ uống");
+            Alert.alert("Lỗi", "Không tìm thấy đồ uống trong CSDL!");
             navigation.goBack();
+            return; // Thoát sớm nếu không tìm thấy đồ uống
           }
+        } else {
+            Alert.alert("Lỗi", "Không có thông tin đồ uống để hiển thị.");
+            navigation.goBack();
+            return; // Thoát sớm nếu không có drinkId và cartItem
         }
+
+        // Sau khi đã có currentDrink, tải reviews
+        if (currentDrink) {
+          const unsubscribe = loadReviews(currentDrink.id);
+          return () => unsubscribe();
+        }
+
       } catch (error) {
         Alert.alert("Lỗi", "Có lỗi khi tải thông tin đồ uống");
         console.log("Lỗi thông tin đồ uống", error);
@@ -140,26 +208,11 @@ const OrderScreen = () => {
     fetchDrinkDetails();
   }, [drinkId, route.params?.cartItem]);
 
-  // Lắng nghe review
-  useEffect(() => {
-    if (!drinkId) return;
-    const db = getFirestore(app);
-    const q = query(collection(db, "reviews"), where("drinkId", "==", drinkId));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const reviewsData = [];
-      querySnapshot.forEach((doc) => {
-        reviewsData.push({ id: doc.id, ...doc.data() });
-      });
-      setReviews(reviewsData);
-    });
 
-    return () => unsubscribe();
-  }, [drinkId]);
-
-  const loadReviews = (drinkId) => {
+  const loadReviews = (id) => { // Đổi tên tham số để tránh nhầm lẫn với drinkId của component
     const db = getFirestore(app);
     const reviewsRef = collection(db, "reviews");
-    const q = query(reviewsRef, where("drinkId", "==", drinkId));
+    const q = query(reviewsRef, where("drinkId", "==", id)); // Sử dụng id được truyền vào
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const reviewsData = [];
@@ -175,12 +228,23 @@ const OrderScreen = () => {
   // Thay đổi hàm handleOrderNow trong OrderScreen.js
   const handleOrderNow = async () => {
     try {
-      // Lấy thông tin người dùng từ AsyncStorage (nếu có)
-      const userData = await AsyncStorage.getItem("userData");
-      const userName = userData ? JSON.parse(userData).name : "Khách hàng";
+      // Kiểm tra xem người dùng đã đăng nhập chưa
+      if (!loggedInUserName || loggedInUserName === "Khách hàng" || !loggedInUserId) {
+        Alert.alert("Thông báo", "Vui lòng đăng nhập để đặt hàng.");
+        return;
+      }
+
+      // Đảm bảo drink đã được tải
+      if (!drink) {
+        Alert.alert("Lỗi", "Thông tin đồ uống chưa được tải.");
+        return;
+      }
+
+      const db = getFirestore(app);
+      const ordersRef = collection(db, "orders");
 
       const newOrder = {
-        id: Date.now().toString(),
+        userId: loggedInUserId, // Sử dụng userId từ state đã load
         items: [
           {
             id: drink.id,
@@ -192,22 +256,19 @@ const OrderScreen = () => {
             sugarLevel: sugarLevel,
             category: drink.category,
             description: drink.description,
+            paymentMethod: paymentMethod,
           },
         ],
         status: "Đang xử lý",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date().getTime(), // Lưu timestamp để dễ sắp xếp
+        updatedAt: new Date().getTime(),
         total: parseInt(drink.price) * quantity,
-        userName: userName,
+        userName: loggedInUserName, // Sử dụng userName từ state đã load
       };
 
-      // Lưu vào danh sách đơn hàng
-      const existingOrders = await AsyncStorage.getItem("orders");
-      let orders = existingOrders ? JSON.parse(existingOrders) : [];
-
-      // Thêm đơn hàng mới vào đầu mảng
-      orders.unshift(newOrder);
-      await AsyncStorage.setItem("orders", JSON.stringify(orders));
+      // Lưu vào Firestore
+      const docRef = await addDoc(ordersRef, newOrder);
+      console.log("Order saved to Firestore with ID: ", docRef.id);
 
       // Nếu từ giỏ hàng thì xóa sản phẩm đó khỏi giỏ hàng
       if (route.params?.fromCart) {
@@ -215,6 +276,7 @@ const OrderScreen = () => {
         let cart = currentCart ? JSON.parse(currentCart) : [];
         cart = cart.filter((item) => item.id !== drink.id);
         await AsyncStorage.setItem("cart", JSON.stringify(cart));
+        console.log(`Đã xóa mục ${drink.drinkname} khỏi giỏ hàng.`);
       }
 
       // Hiển thị thông báo và chuyển hướng
@@ -225,8 +287,7 @@ const OrderScreen = () => {
             navigation.navigate("CartTab", {
               screen: "Cart",
               params: {
-                shouldRefresh: true,
-                activeTab: "orders", // Mặc định hiển thị tab đơn hàng
+                activeTab: "orders", // Đặt tab orders là active
               },
             });
           },
@@ -238,9 +299,10 @@ const OrderScreen = () => {
       ]);
     } catch (error) {
       console.error("Error placing order:", error);
-      Alert.alert("Lỗi", "Không thể đặt hàng");
+      Alert.alert("Lỗi", "Không thể đặt hàng. Chi tiết: " + error.message);
     }
   };
+
   const handleSubmitReview = async () => {
     if (!review.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập nội dung đánh giá.");
@@ -252,6 +314,12 @@ const OrderScreen = () => {
       return;
     }
 
+    // Kiểm tra xem người dùng đã đăng nhập chưa
+    if (!loggedInUserName || loggedInUserName === "Khách hàng") {
+        Alert.alert("Thông báo", "Vui lòng đăng nhập để gửi đánh giá.");
+        return;
+    }
+
     try {
       const db = getFirestore(app);
       const reviewsRef = collection(db, "reviews");
@@ -259,7 +327,7 @@ const OrderScreen = () => {
       await addDoc(reviewsRef, {
         drinkId: drink.id,
         drinkName: drink.drinkname,
-        userName: userName,
+        userName: loggedInUserName, // Sử dụng userName từ state đã load
         rating: rating,
         comment: review,
         createdAt: new Date(),
@@ -294,6 +362,18 @@ const OrderScreen = () => {
       </View>
     );
   }
+  //các phương thức thanh toán
+  const paymentMethods = [
+    {
+      id: "cash", // Đổi 'sash' thành 'cash' để khớp với logic của bạn
+      name: "Tiền mặt",
+    },
+    {
+      id: "qr",
+      name: "Quét QR",
+      image: require("../../assets/images/qr.jpg"),
+    },
+  ];
 
   return (
     <ScrollView style={styles.container}>
@@ -335,6 +415,19 @@ const OrderScreen = () => {
               <FontAwesome name="plus" size={16} color="#6F4E37" />
             </TouchableOpacity>
           </View>
+        </View>
+        <View style={styles.paymentContainer}>
+          {/* chọn phương thức thanh toán */}
+          <Text style={styles.paymentTitle}>Thanh Toán</Text>
+          {paymentMethods.map((method) => (
+            <Option
+              key={method.id}
+              name={method.name}
+              image={method.image}
+              selected={paymentMethod == method.id}
+              onSelect={() => setPaymentMethod(method.id)}
+            ></Option>
+          ))}
         </View>
 
         <View style={styles.reviewSection}>
@@ -583,6 +676,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+  },
+  paymentContainer: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 10,
+  },
+  paymentTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
+  },
+  paymentOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: "#fff",
+  },
+  selectedPaymentOption: {
+    borderColor: "#6F4E37",
+    backgroundColor: "#f5f0ec",
+  },
+  paymentImage: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
+  },
+  paymentOptionText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  paymentCheckIcon: {
+    marginLeft: 10,
   },
 });
 

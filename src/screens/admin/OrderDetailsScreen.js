@@ -1,113 +1,143 @@
 // src/screens/admin/OrderDetailsScreen.js
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import app from '../../sever/firebase'; // Adjust the path to your firebase.js file
 
 const OrderDetailsScreen = ({ route, navigation }) => {
-  const { orderId } = route.params || { orderId: '1' }; // Default for testing
+  const { orderId } = route.params || { orderId: null };
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState(null);
 
-  // Order status colors and labels
+  const db = getFirestore(app);
+
+  // Order status colors and labels, consistent with OrdersScreen.js
   const statusConfig = {
-    'pending': { color: '#FF9800', icon: 'time-outline', label: 'Chờ xác nhận' },
-    'confirmed': { color: '#2196F3', icon: 'checkmark-outline', label: 'Đã xác nhận' },
-    'preparing': { color: '#9C27B0', icon: 'cafe-outline', label: 'Đang pha chế' },
-    'ready': { color: '#4CAF50', icon: 'bicycle-outline', label: 'Sẵn sàng giao' },
-    'delivered': { color: '#009688', icon: 'checkmark-done-outline', label: 'Đã giao hàng' },
-    'cancelled': { color: '#F44336', icon: 'close-outline', label: 'Đã hủy' },
+    'Đang xử lý': { color: '#FF9800', icon: 'time-outline', label: 'Đang xử lý' },
+    'Đang giao': { color: '#2196F3', icon: 'bicycle-outline', label: 'Đang giao' },
+    'Đã hoàn thành': { color: '#4CAF50', icon: 'checkmark-done-outline', label: 'Đã hoàn thành' },
+    'Đã hủy': { color: '#F44336', icon: 'close-outline', label: 'Đã hủy' },
+    // Add other statuses if needed, e.g., 'Chờ xác nhận'
+    'Chờ xác nhận': { color: '#FF9800', icon: 'hourglass-outline', label: 'Chờ xác nhận' }, // Example
+    'Không xác định': { color: '#757575', icon: 'help-circle-outline', label: 'Không xác định' },
   };
 
-  // Simulate fetching order data
   useEffect(() => {
+    if (!orderId) {
+      Alert.alert('Lỗi', 'Không có mã đơn hàng để hiển thị.');
+      setIsLoading(false);
+      return;
+    }
+
     const fetchOrderDetails = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Dummy data
-        const orderData = {
-          id: orderId,
-          orderNumber: `HD${orderId.padStart(6, '0')}`,
-          status: 'confirmed',
-          orderDate: '15/04/2025 08:45',
-          estimatedDelivery: '15/04/2025 09:15',
-          customer: {
-            name: 'Nguyễn Văn A',
-            phone: '0912345678',
-            address: '123 Nguyễn Huệ, Quận 1, TP.HCM',
-          },
-          items: [
-            {
-              id: '1',
-              name: 'Cà phê sữa đá',
-              price: '29,000 đ',
-              quantity: 2,
-              options: ['Ít đường', 'Nhiều đá'],
-              subtotal: '58,000 đ',
-              image: 'https://via.placeholder.com/100'
+        const orderRef = doc(db, 'orders', orderId);
+        const docSnap = await getDoc(orderRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const createdAt = data.createdAt && typeof data.createdAt.toDate === 'function'
+            ? data.createdAt.toDate().getTime()
+            : (data.createdAt || new Date().getTime());
+
+          const formattedOrder = {
+            id: docSnap.id,
+            ...data,
+            orderNumber: `HD${docSnap.id.slice(-6).toUpperCase()}`, // Use last 6 chars of ID
+            orderDate: new Date(createdAt).toLocaleString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            customer: {
+              name: data.userName || 'N/A',
+              phone: data.userPhone || 'N/A',
+              address: data.deliveryAddress || 'N/A',
             },
-            {
-              id: '2',
-              name: 'Trà đào cam sả',
-              price: '45,000 đ',
-              quantity: 1,
-              options: ['Ít đá', 'Không đường'],
-              subtotal: '45,000 đ',
-              image: 'https://via.placeholder.com/100'
-            }
-          ],
-          payment: {
-            method: 'Tiền mặt',
-            status: 'Thanh toán khi nhận hàng',
-          },
-          subtotal: '103,000 đ',
-          deliveryFee: '15,000 đ',
-          discount: '10,000 đ',
-          total: '108,000 đ',
-          notes: 'Giao tại sảnh chính của tòa nhà, gọi điện khi đến.',
-          staff: {
-            created: 'Trần Minh',
-            lastUpdated: 'Phạm Hùng',
-          },
-          logs: [
-            { time: '15/04/2025 08:45', action: 'Đơn hàng được tạo', user: 'Trần Minh' },
-            { time: '15/04/2025 08:52', action: 'Đã xác nhận đơn hàng', user: 'Phạm Hùng' },
-          ]
-        };
-        
-        setOrder(orderData);
+            items: data.items || [],
+            payment: {
+              method: data.paymentMethod || 'N/A',
+              status: data.paymentStatus || 'Chưa thanh toán', // Default status
+            },
+            subtotal: data.subtotal || 0,
+            deliveryFee: data.deliveryFee || 0, // Assuming deliveryFee comes from Firestore
+            discount: data.discount || 0,     // Assuming discount comes from Firestore
+            total: data.total || 0,
+            notes: data.notes || '',
+            staff: {
+              created: data.staffCreated || 'Hệ thống',
+              lastUpdated: data.staffLastUpdated || 'Chưa cập nhật',
+            },
+            logs: data.logs || [],
+            status: data.status || 'Không xác định', // Ensure status exists
+          };
+          setOrder(formattedOrder);
+        } else {
+          Alert.alert('Không tìm thấy', 'Không tìm thấy đơn hàng này.');
+          navigation.goBack();
+        }
       } catch (error) {
-        console.error('Error fetching order details:', error);
+        console.error('Lỗi khi tải chi tiết đơn hàng:', error);
         Alert.alert('Lỗi', 'Không thể tải thông tin đơn hàng!');
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchOrderDetails();
-  }, [orderId]);
 
-  const handleUpdateStatus = (newStatus) => {
+    fetchOrderDetails();
+  }, [orderId, db, navigation]);
+
+  const handleUpdateStatus = async (newStatus) => {
+    if (!order || !orderId) return;
+
     Alert.alert(
       'Cập nhật trạng thái',
-      `Bạn có chắc muốn chuyển đơn hàng sang trạng thái "${statusConfig[newStatus].label}"?`,
+      `Bạn có chắc muốn chuyển đơn hàng sang trạng thái "${statusConfig[newStatus]?.label || newStatus}"?`,
       [
         { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Xác nhận', 
-          onPress: () => {
-            // Here would be the API call to update the order status
-            setOrder(prev => ({
-              ...prev,
-              status: newStatus,
-              logs: [
-                { time: new Date().toLocaleString('vi-VN'), action: `Chuyển sang ${statusConfig[newStatus].label}`, user: 'Phạm Hùng' },
-                ...prev.logs,
-              ]
-            }));
-            Alert.alert('Thành công', 'Cập nhật trạng thái đơn hàng thành công!');
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            try {
+              const orderRef = doc(db, 'orders', orderId);
+              const newLogEntry = {
+                time: new Date().toLocaleString('vi-VN'),
+                action: `Chuyển sang ${statusConfig[newStatus]?.label || newStatus}`,
+                user: 'Admin (Bạn)', // You can replace with actual admin user if authenticated
+              };
+
+              await updateDoc(orderRef, {
+                status: newStatus,
+                logs: [newLogEntry, ...order.logs], // Add new log at the beginning
+                staffLastUpdated: 'Admin (Bạn)', // Update last updated staff
+                updatedAt: serverTimestamp(), // Update timestamp
+              });
+
+              // Update local state to reflect changes immediately
+              setOrder(prev => ({
+                ...prev,
+                status: newStatus,
+                logs: [newLogEntry, ...prev.logs],
+                staffLastUpdated: 'Admin (Bạn)',
+              }));
+
+              Alert.alert('Thành công', 'Cập nhật trạng thái đơn hàng thành công!');
+            } catch (error) {
+              console.error('Lỗi khi cập nhật trạng thái:', error);
+              Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng!');
+            }
           }
         }
       ]
@@ -115,14 +145,14 @@ const OrderDetailsScreen = ({ route, navigation }) => {
   };
 
   const handlePrintOrder = () => {
-    Alert.alert('In đơn hàng', 'Đang gửi yêu cầu in đơn hàng...');
-    // Implementation would connect to a printer service
+    Alert.alert('In đơn hàng', 'Chức năng in đơn hàng đang được phát triển...');
+    // Future implementation would connect to a printer service
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B0000" />
+        <ActivityIndicator size="large" color="#6F4E37" />
         <Text style={styles.loadingText}>Đang tải thông tin đơn hàng...</Text>
       </View>
     );
@@ -132,17 +162,22 @@ const OrderDetailsScreen = ({ route, navigation }) => {
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-outline" size={60} color="#D32F2F" />
-        <Text style={styles.errorText}>Không tìm thấy thông tin đơn hàng!</Text>
+        <Text style={styles.errorText}>Không tìm thấy thông tin đơn hàng hoặc đã xảy ra lỗi!</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Quay lại</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   const getNextStatus = () => {
-    const statusFlow = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
-    if (order.status === 'cancelled') return null;
-    if (order.status === 'delivered') return null;
-    
+    const statusFlow = ['Đang xử lý', 'Đang giao', 'Đã hoàn thành'];
     const currentIndex = statusFlow.indexOf(order.status);
+
+    if (order.status === 'Đã hủy' || order.status === 'Đã hoàn thành') {
+      return null; // Cannot change status if cancelled or delivered
+    }
+
     if (currentIndex < statusFlow.length - 1) {
       return statusFlow[currentIndex + 1];
     }
@@ -157,39 +192,39 @@ const OrderDetailsScreen = ({ route, navigation }) => {
       <View style={styles.header}>
         <View>
           <Text style={styles.orderNumber}>Đơn hàng #{order.orderNumber}</Text>
-          <Text style={styles.orderDate}>{order.orderDate}</Text>
+          <Text style={styles.orderDate}>Ngày đặt: {order.orderDate}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig[order.status].color }]}>
-          <Ionicons name={statusConfig[order.status].icon} size={18} color="#fff" />
-          <Text style={styles.statusText}>{statusConfig[order.status].label}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusConfig[order.status]?.color || '#757575' }]}>
+          <Ionicons name={statusConfig[order.status]?.icon || 'help-circle-outline'} size={18} color="#fff" />
+          <Text style={styles.statusText}>{statusConfig[order.status]?.label || order.status}</Text>
         </View>
       </View>
-      
+
       {/* Action buttons */}
       <View style={styles.actionButtons}>
         {nextStatus && (
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: statusConfig[nextStatus].color }]}
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: statusConfig[nextStatus]?.color || '#607D8B' }]}
             onPress={() => handleUpdateStatus(nextStatus)}
           >
             <Ionicons name="arrow-forward" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>
-              Chuyển sang {statusConfig[nextStatus].label}
+              Chuyển sang {statusConfig[nextStatus]?.label || nextStatus}
             </Text>
           </TouchableOpacity>
         )}
-        
-        {order.status !== 'cancelled' && order.status !== 'delivered' && (
-          <TouchableOpacity 
+
+        {order.status !== 'Đã hủy' && order.status !== 'Đã hoàn thành' && (
+          <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#F44336' }]}
-            onPress={() => handleUpdateStatus('cancelled')}
+            onPress={() => handleUpdateStatus('Đã hủy')}
           >
             <Ionicons name="close" size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Hủy đơn hàng</Text>
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: '#607D8B' }]}
           onPress={handlePrintOrder}
         >
@@ -197,79 +232,86 @@ const OrderDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.actionButtonText}>In đơn hàng</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Customer Information */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Thông tin khách hàng</Text>
         <View style={styles.customerInfo}>
           <View style={styles.infoRow}>
-            <Ionicons name="person" size={18} color="#8B0000" />
+            <Ionicons name="person" size={18} color="#6F4E37" />
             <Text style={styles.infoLabel}>Tên:</Text>
             <Text style={styles.infoValue}>{order.customer.name}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="call" size={18} color="#8B0000" />
+            <Ionicons name="call" size={18} color="#6F4E37" />
             <Text style={styles.infoLabel}>SĐT:</Text>
             <Text style={styles.infoValue}>{order.customer.phone}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="location" size={18} color="#8B0000" />
+            <Ionicons name="location" size={18} color="#6F4E37" />
             <Text style={styles.infoLabel}>Địa chỉ:</Text>
             <Text style={styles.infoValue}>{order.customer.address}</Text>
           </View>
         </View>
       </View>
-      
-      {/* Order Items */}
+
+      {/* Order Items - Using map instead of FlatList to avoid nesting warning */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sản phẩm đặt hàng</Text>
-        <FlatList
-          data={order.items}
-          keyExtractor={(item) => item.id}
-          renderItem={({item}) => (
-            <View style={styles.orderItem}>
+        {order.items.length > 0 ? (
+          order.items.map((item, index) => (
+            <View key={item.id || index} style={styles.orderItem}>
               <View style={styles.itemHeader}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemQuantity}>x{item.quantity}</Text>
               </View>
-              <View style={styles.itemOptions}>
-                {item.options.map((option, index) => (
-                  <View key={index} style={styles.optionTag}>
-                    <Text style={styles.optionText}>{option}</Text>
-                  </View>
-                ))}
-              </View>
+              {item.options && item.options.length > 0 && (
+                <View style={styles.itemOptions}>
+                  {item.options.map((option, optIndex) => (
+                    <View key={optIndex} style={styles.optionTag}>
+                      <Text style={styles.optionText}>{option}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               <View style={styles.itemPriceRow}>
-                <Text style={styles.itemPrice}>{item.price}</Text>
-                <Text style={styles.itemSubtotal}>{item.subtotal}</Text>
+                <Text style={styles.itemPrice}>
+                  {(item.price || 0).toLocaleString('vi-VN')}đ
+                </Text>
+                <Text style={styles.itemSubtotal}>
+                  {(item.price * item.quantity || 0).toLocaleString('vi-VN')}đ
+                </Text>
               </View>
             </View>
-          )}
-          scrollEnabled={false}
-        />
+          ))
+        ) : (
+          <Text style={styles.emptyItemsText}>Không có sản phẩm nào trong đơn hàng.</Text>
+        )}
       </View>
-      
+
       {/* Order Summary */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tổng kết đơn hàng</Text>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Tạm tính:</Text>
-          <Text style={styles.summaryValue}>{order.subtotal}</Text>
+          <Text style={styles.summaryValue}>{(order.subtotal || 0).toLocaleString('vi-VN')}đ</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Phí giao hàng:</Text>
-          <Text style={styles.summaryValue}>{order.deliveryFee}</Text>
+          <Text style={styles.summaryValue}>{(order.deliveryFee || 0).toLocaleString('vi-VN')}đ</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Giảm giá:</Text>
-          <Text style={styles.summaryValue}>-{order.discount}</Text>
-        </View>
+        {order.discount > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Giảm giá:</Text>
+            <Text style={styles.summaryValue}>-{(order.discount || 0).toLocaleString('vi-VN')}đ</Text>
+          </View>
+        )}
         <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Tổng cộng:</Text>
-          <Text style={styles.totalValue}>{order.total}</Text>
+          <Text style={styles.totalValue}>{(order.total || 0).toLocaleString('vi-VN')}đ</Text>
         </View>
       </View>
-      
+
       {/* Payment Information */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
@@ -282,33 +324,43 @@ const OrderDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.infoValue}>{order.payment.status}</Text>
         </View>
       </View>
-      
+
       {/* Additional Information */}
-      {order.notes && (
+      {order.notes ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ghi chú đơn hàng</Text>
           <View style={styles.notesContainer}>
-            <Ionicons name="chatbubble-ellipses" size={20} color="#8B0000" />
+            <Ionicons name="chatbubble-ellipses" size={20} color="#6F4E37" />
             <Text style={styles.notesText}>{order.notes}</Text>
           </View>
         </View>
+      ) : (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ghi chú đơn hàng</Text>
+          <Text style={styles.notesText}>Không có ghi chú nào cho đơn hàng này.</Text>
+        </View>
       )}
-      
+
+
       {/* Order Timeline */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Lịch sử đơn hàng</Text>
-        {order.logs.map((log, index) => (
-          <View key={index} style={styles.logItem}>
-            <View style={styles.logDot} />
-            <View style={styles.logContent}>
-              <Text style={styles.logTime}>{log.time}</Text>
-              <Text style={styles.logAction}>{log.action}</Text>
-              <Text style={styles.logUser}>Bởi: {log.user}</Text>
+        {order.logs.length > 0 ? (
+          order.logs.map((log, index) => (
+            <View key={index} style={styles.logItem}>
+              <View style={styles.logDot} />
+              <View style={styles.logContent}>
+                <Text style={styles.logTime}>{log.time}</Text>
+                <Text style={styles.logAction}>{log.action}</Text>
+                <Text style={styles.logUser}>Bởi: {log.user}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text style={styles.emptyItemsText}>Chưa có lịch sử cập nhật nào.</Text>
+        )}
       </View>
-      
+
       {/* Staff Information */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Thông tin nhân viên</Text>
@@ -344,12 +396,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#f9f9f9',
   },
   errorText: {
     marginTop: 10,
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: '#6F4E37',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',
@@ -359,6 +424,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   orderNumber: {
     fontSize: 18,
@@ -376,6 +446,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    minWidth: 120, // Ensure consistent width
+    justifyContent: 'center',
   },
   statusText: {
     color: '#fff',
@@ -385,39 +457,52 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center', // Center buttons
     backgroundColor: '#fff',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    marginBottom: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 5,
-    marginRight: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20, // More rounded buttons
+    marginHorizontal: 5,
     marginBottom: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   actionButtonText: {
     color: '#fff',
     fontWeight: '500',
-    marginLeft: 4,
+    marginLeft: 8,
+    fontSize: 14,
   },
   section: {
     backgroundColor: '#fff',
     padding: 16,
     marginTop: 10,
-    borderRadius: 5,
+    borderRadius: 8, // More rounded sections
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
     marginHorizontal: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
@@ -449,10 +534,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   orderItem: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fcfcfc', // Lighter background for individual items
     padding: 12,
-    borderRadius: 5,
+    borderRadius: 8,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   itemHeader: {
     flexDirection: 'row',
@@ -463,11 +550,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
+    flexShrink: 1, // Allow text to shrink
   },
   itemQuantity: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#8B0000',
+    color: '#6F4E37', // Use theme color
+    marginLeft: 10,
   },
   itemOptions: {
     flexDirection: 'row',
@@ -475,12 +564,14 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   optionTag: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#eef',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     marginRight: 8,
     marginBottom: 6,
+    borderColor: '#ddd',
+    borderWidth: 1,
   },
   optionText: {
     fontSize: 12,
@@ -503,6 +594,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  emptyItemsText: {
+    textAlign: 'center',
+    color: '#999',
+    fontStyle: 'italic',
+    paddingVertical: 10,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -515,6 +612,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 14,
     color: '#333',
+    fontWeight: '500',
   },
   totalRow: {
     borderTopWidth: 1,
@@ -530,7 +628,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#8B0000',
+    color: '#6F4E37',
   },
   notesContainer: {
     flexDirection: 'row',
@@ -549,21 +647,23 @@ const styles = StyleSheet.create({
   logItem: {
     flexDirection: 'row',
     marginBottom: 12,
+    alignItems: 'flex-start',
   },
   logDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#8B0000',
-    marginTop: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#6F4E37',
+    marginTop: 5, // Align with the text
     marginRight: 12,
+    flexShrink: 0, // Do not shrink
   },
   logContent: {
     flex: 1,
   },
   logTime: {
     fontSize: 12,
-    color: '#666',
+    color: '#888',
   },
   logAction: {
     fontSize: 14,

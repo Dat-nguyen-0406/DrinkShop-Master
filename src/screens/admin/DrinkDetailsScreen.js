@@ -3,152 +3,123 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+// Import các hàm cần thiết từ firebase.js của bạn
+import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Import doc và getDoc
+import app from '../../sever/firebase'; // Đảm bảo đường dẫn này chính xác
+
+const db = getFirestore(app); // Khởi tạo db
 
 const DrinkDetailsScreen = ({ route, navigation }) => {
-  const { drinkId } = route.params || { drinkId: '1' }; // Default for testing
+  const { drinkId } = route.params || {}; // Không gán ID mặc định, để nó đến từ navigation
   const [isLoading, setIsLoading] = useState(true);
   const [drink, setDrink] = useState(null);
 
-  // Simulate fetching drink data
   useEffect(() => {
     const fetchDrinkDetails = async () => {
+      if (!drinkId) {
+        console.warn("Drink ID không được cung cấp khi điều hướng đến chi tiết đồ uống.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Dummy data
-        const drinkData = {
-          id: drinkId,
-          name: 'Cà phê sữa đá',
-          price: '29,000 đ',
-          description: 'Cà phê đậm đà hòa quyện với sữa đặc và đá, tạo nên hương vị thơm ngon khó cưỡng.',
-          category: 'Cà phê',
-          imageUrl: require('../../assets/images/cafe.jpg'),
-          ingredients: ['Cà phê nguyên chất', 'Sữa đặc', 'Đá'],
-          nutritionFacts: {
-            calories: '120 kcal',
-            sugar: '12g',
-            caffeine: '65mg'
-          },
-          ratings: 4.5,
-          reviewCount: 128,
-          isAvailable: true,
-          createdAt: '01/01/2023',
-          updatedAt: '15/03/2023'
-        };
-        
-        setDrink(drinkData);
+        // *** SỬA TÊN COLLECTION TẠI ĐÂY: từ 'drinks' thành 'douong' ***
+        const docRef = doc(db, 'douong', drinkId); // <--- SỬA TẠI ĐÂY
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setDrink({
+            id: docSnap.id, // ID tài liệu Firestore
+            name: data.drinkname, // Lấy từ trường 'drinkname'
+            price: typeof data.price === 'number' ? data.price : (parseFloat(data.price) || 0), // Đảm bảo giá là số
+            description: data.description,
+            category: data.category,
+            imageUrl: data.image, // Lấy URL ảnh từ Firestore
+            // Thêm các trường dữ liệu khác nếu có
+            quatiy: typeof data.quatiy === 'number' ? data.quatiy : (parseInt(data.quatiy) || 0),
+            start: typeof data.start === 'number' ? data.start : (parseFloat(data.start) || 0),
+            status: data.status,
+            active: data.active,
+          });
+        } else {
+          console.log("DrinkDetailsScreen: Không tìm thấy tài liệu với ID:", drinkId);
+          Alert.alert("Lỗi", "Không tìm thấy thông tin đồ uống.");
+          navigation.goBack(); // Quay lại nếu không tìm thấy
+        }
       } catch (error) {
-        console.error('Error fetching drink details:', error);
-        alert('Không thể tải thông tin đồ uống!');
+        console.error("DrinkDetailsScreen: Lỗi khi fetch chi tiết đồ uống:", error);
+        Alert.alert("Lỗi", `Không thể tải chi tiết đồ uống: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchDrinkDetails();
-  }, [drinkId]);
 
-  const handleEditDrink = () => {
-    navigation.navigate('EditDrink', { drinkId });
-  };
+    fetchDrinkDetails();
+  }, [drinkId, navigation]);
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#8B0000" />
-        <Text style={styles.loadingText}>Đang tải thông tin...</Text>
+        <Text style={{ marginTop: 10 }}>Đang tải chi tiết đồ uống...</Text>
       </View>
     );
   }
 
   if (!drink) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={60} color="#D32F2F" />
-        <Text style={styles.errorText}>Không tìm thấy thông tin đồ uống!</Text>
+      <View style={styles.centered}>
+        <Text style={styles.emptyText}>Không có dữ liệu đồ uống.</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
-     <Image source={drink.imageUrl} style={styles.drinkImage} />
-
-      
       <View style={styles.header}>
-        <View>
+        <Image source={{ uri: drink.imageUrl }} style={styles.mainImage} />
+        <View style={styles.headerContent}>
           <Text style={styles.drinkName}>{drink.name}</Text>
-          <Text style={styles.price}>{drink.price}</Text>
+          <Text style={styles.price}>{drink.price.toLocaleString("vi-VN")} đ</Text>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate("EditDrink", { drinkId: drink.id })} // Truyền drinkId
+          >
+            <Ionicons name="create-outline" size={20} color="#fff" />
+            <Text style={styles.editButtonText}>Sửa đồ uống</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.editButton} onPress={handleEditDrink}>
-          <Ionicons name="pencil" size={22} color="#fff" />
-          <Text style={styles.editButtonText}>Sửa</Text>
-        </TouchableOpacity>
       </View>
-      
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Mô tả</Text>
-        <Text style={styles.description}>{drink.description}</Text>
+        <Text style={styles.description}>{drink.description || "Không có mô tả."}</Text>
       </View>
-      
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thông tin chung</Text>
+        <Text style={styles.sectionTitle}>Thông tin chi tiết</Text>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Danh mục:</Text>
           <Text style={styles.infoValue}>{drink.category}</Text>
         </View>
         <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Số lượng:</Text>
+          <Text style={styles.infoValue}>{drink.quatiy}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Điểm bắt đầu:</Text>
+          <Text style={styles.infoValue}>{drink.start}</Text>
+        </View>
+        <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Trạng thái:</Text>
-          <Text style={[styles.infoValue, drink.isAvailable ? styles.available : styles.unavailable]}>
-            {drink.isAvailable ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}
+          <Text style={styles.infoValue}>{drink.status}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Có sẵn:</Text>
+          <Text style={[styles.infoValue, drink.active ? styles.available : styles.notAvailable]}>
+            {drink.active ? "Có" : "Không"}
           </Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Đánh giá:</Text>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingValue}>{drink.ratings}</Text>
-            <Ionicons name="star" size={16} color="#FFC107" />
-            <Text style={styles.reviewCount}>({drink.reviewCount} đánh giá)</Text>
-          </View>
-        </View>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thành phần</Text>
-        {drink.ingredients.map((ingredient, index) => (
-          <View key={index} style={styles.ingredientRow}>
-            <Ionicons name="checkmark-circle" size={18} color="#8B0000" />
-            <Text style={styles.ingredientText}>{ingredient}</Text>
-          </View>
-        ))}
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Giá trị dinh dưỡng</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Calories:</Text>
-          <Text style={styles.infoValue}>{drink.nutritionFacts.calories}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Đường:</Text>
-          <Text style={styles.infoValue}>{drink.nutritionFacts.sugar}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Caffeine:</Text>
-          <Text style={styles.infoValue}>{drink.nutritionFacts.caffeine}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thông tin thêm</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Ngày tạo:</Text>
-          <Text style={styles.infoValue}>{drink.createdAt}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Cập nhật lần cuối:</Text>
-          <Text style={styles.infoValue}>{drink.updatedAt}</Text>
         </View>
       </View>
     </ScrollView>
@@ -158,40 +129,33 @@ const DrinkDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f8f8',
   },
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  drinkImage: {
-    width: '100%',
-    height: 250,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingBottom: 16,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  mainImage: {
+    width: '100%',
+    height: 250,
+    resizeMode: 'cover',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  headerContent: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   drinkName: {
     fontSize: 24,
@@ -211,6 +175,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 5,
     alignItems: 'center',
+    marginTop: 15,
+    alignSelf: 'flex-start', // Đặt nút về phía trái
   },
   editButtonText: {
     color: '#fff',
@@ -218,9 +184,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   section: {
+    backgroundColor: '#fff',
+    marginHorizontal: 10,
+    marginTop: 10,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderRadius: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   sectionTitle: {
     fontSize: 18,
@@ -248,34 +221,15 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   available: {
-    color: '#4CAF50',
+    color: '#4CAF50', // Xanh lá cây
   },
-  unavailable: {
-    color: '#F44336',
+  notAvailable: {
+    color: '#F44336', // Đỏ
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginRight: 4,
-  },
-  reviewCount: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  ingredientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  ingredientText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#555',
+  emptyText: {
+    fontSize: 18,
+    color: '#757575',
+    textAlign: 'center',
   },
 });
 

@@ -11,11 +11,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { getDatabase, ref, set } from "firebase/database";
-import app from "../../sever/firebase";
+// Import Firestore functions
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+// Ensure 'app' (Firebase app instance) is imported correctly
+import { app } from "../../sever/firebase"; // Assuming 'app' is exported from firebase.js
 
 const RegisterScreen = ({ navigation }) => {
   const [fullname, setFullname] = useState("");
@@ -40,7 +43,7 @@ const RegisterScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const auth = getAuth(app);
+      const auth = getAuth(app); // Get Firebase Auth instance
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -48,8 +51,19 @@ const RegisterScreen = ({ navigation }) => {
       );
       const user = userCredential.user;
 
-      const db = getDatabase(app);
-      await set(ref(db, "users/" + user.uid), {
+      const db = getFirestore(app); // Get Firestore instance
+      // Store user data in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        fullname,
+        email,
+        phone,
+        role: "customer", // Default role as per your existing code
+        createdAt: new Date().toISOString(),
+        password, // Use ISO string for consistent date storage
+      });
+
+      console.log("Đăng ký thành công cho UID:", user.uid);
+      console.log("Thông tin người dùng đã lưu vào Firestore:", {
         fullname,
         email,
         phone,
@@ -65,6 +79,7 @@ const RegisterScreen = ({ navigation }) => {
       ]);
     } catch (error) {
       let errorMessage = "Đã xảy ra lỗi khi đăng ký";
+      console.error("Lỗi đăng ký:", error.code, error.message); // Log detailed error
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "Email này đã được sử dụng";
       } else if (error.code === "auth/invalid-email") {
@@ -103,6 +118,7 @@ const RegisterScreen = ({ navigation }) => {
         keyboardType={keyboardType}
         secureTextEntry={secure && show}
         autoCapitalize="none"
+        placeholderTextColor="#999"
       />
       {toggle && (
         <TouchableOpacity onPress={toggle} style={styles.passwordToggle}>
@@ -175,9 +191,11 @@ const RegisterScreen = ({ navigation }) => {
             onPress={handleRegister}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>
-              {isLoading ? "Đang đăng ký..." : "Đăng ký"}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Đăng ký</Text>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.orText}>HOẶC</Text>
@@ -185,13 +203,13 @@ const RegisterScreen = ({ navigation }) => {
           <View style={styles.socialButtonsContainer}>
             <TouchableOpacity style={styles.socialButton}>
               <Image
-                source={require("../../assets/images/icon.png")}
+                source={require("../../assets/images/icon.png")} // Thay bằng icon Google của bạn
                 style={styles.socialIcon}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
               <Image
-                source={require("../../assets/images/icon.png")}
+                source={require("../../assets/images/icon.png")} // Thay bằng icon Facebook của bạn
                 style={styles.socialIcon}
               />
             </TouchableOpacity>
@@ -254,6 +272,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
+    color: '#333',
   },
   passwordToggle: {
     padding: 10,
@@ -291,6 +310,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   socialIcon: {
     width: 30,

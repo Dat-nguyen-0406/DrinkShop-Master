@@ -125,7 +125,7 @@ const CustomerTabNavigator = () => {
       <Tab.Screen
         name="CartTab"
         component={CartStackScreen}
-        options={{ title: "Giỏ hàng", headerShown: false }}
+        options={{ title: "Đơn hàng", headerShown: false }}
       />
       <Tab.Screen
         name="ProfileTab"

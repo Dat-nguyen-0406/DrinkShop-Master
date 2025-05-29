@@ -7,65 +7,110 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useIsFocused } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Chỉ import một lần
+import { useIsFocused, useNavigation } from "@react-navigation/native"; // Thêm useNavigation
 import { FontAwesome } from "@expo/vector-icons";
-import { ActivityIndicator } from "react-native-web";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import app from "../../sever/firebase"; // Đảm bảo đường dẫn đúng
 
 const CartScreen = ({ route }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState("cart");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-  const isFocused = useIsFocused();
 
+  const [orders, setOrders] = useState([]);
+  
+  const [activeTab, setActiveTab] = useState("orders");
+  
+  const isFocused = useIsFocused();
+  const navigation = useNavigation(); // Hook để sử dụng navigation
+
+  
   useEffect(() => {
     if (route.params?.activeTab) {
       setActiveTab(route.params.activeTab);
     }
   }, [route.params]);
 
+  
   useEffect(() => {
     if (isFocused) {
-      loadCartItems();
+      
       loadOrders();
     }
   }, [isFocused]);
 
-  const loadCartItems = async () => {
-    const data = await AsyncStorage.getItem("cart");
-    setCartItems(data ? JSON.parse(data) : []);
-  };
+  
 
   const loadOrders = async () => {
-    const data = await AsyncStorage.getItem("orders");
-    setOrders(data ? JSON.parse(data) : []);
+    try {
+      const db = getFirestore(app);
+      const userData = await AsyncStorage.getItem("userData");
+      const userId = userData ? JSON.parse(userData).id : null;
+
+      if (userId) {
+        const q = query(
+          collection(db, "orders"),
+          where("userId", "==", userId)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const ordersData = [];
+        querySnapshot.forEach((doc) => {
+          ordersData.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Sắp xếp theo thời gian tạo mới nhất
+        ordersData.sort((a, b) => {
+            // Đảm bảo createdAt là số (timestamp)
+            const dateA = typeof a.createdAt === 'number' ? a.createdAt : (a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0);
+            const dateB = typeof b.createdAt === 'number' ? b.createdAt : (b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0);
+            return dateB - dateA;
+        });
+        setOrders(ordersData);
+
+        
+        await AsyncStorage.setItem("orders", JSON.stringify(ordersData));
+      } else {
+        
+        const data = await AsyncStorage.getItem("orders");
+        setOrders(data ? JSON.parse(data) : []);
+       
+      }
+    } catch (error) {
+      console.error("Error loading orders:", error);
+      // Fallback: Load từ AsyncStorage nếu có lỗi
+      const data = await AsyncStorage.getItem("orders");
+      setOrders(data ? JSON.parse(data) : []);
+      Alert.alert("Lỗi", "Không thể tải đơn hàng. Vui lòng thử lại.");
+    }
   };
 
-  const removeFromCart = async (id) => {
-    const newCart = cartItems.filter((item) => item.id !== id);
-    setCartItems(newCart);
-    await AsyncStorage.setItem("cart", JSON.stringify(newCart));
-  };
-
-  const goToOrderScreen = (navigation, item) => {
+  
+  const goToOrderScreen = (item) => {
     navigation.navigate("Order", {
-      cartItem: item,
+      drinkId: item.id,
+      cartItem: item, 
       fromCart: true,
     });
   };
 
   return (
     <View style={styles.container}>
-      {/* Tab */}
+    
       <View style={styles.tabContainer}>
+       
         <TouchableOpacity
+         
           style={[
             styles.tabButton,
+            styles.singleTabButton, // Thêm style mới cho nút duy nhất
             activeTab === "orders" && styles.activeTabButton,
           ]}
-          onPress={() => setActiveTab("orders")}
+          onPress={() => setActiveTab("orders")} // Giữ lại onPress nhưng thực tế nó sẽ luôn là 'orders'
         >
           <Text
             style={[
@@ -73,99 +118,61 @@ const CartScreen = ({ route }) => {
               activeTab === "orders" && styles.activeTabText,
             ]}
           >
-            Đơn hàng
+            Đơn hàng của bạn
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Nội dung */}
+     
       <ScrollView style={styles.content}>
-        {activeTab === "cart" ? (
-          cartItems.length === 0 ? (
-            <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
+       
+       
+         
+          {orders.length === 0 ? (
+            <Text style={styles.emptyText}>Bạn chưa có đơn hàng nào</Text>
           ) : (
-            cartItems.map((item) => (
-              <View key={item.id} style={styles.itemCard}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text>Lượng đường: {item.sugarLevel}</Text>
-                <Text>Lượng đá: {item.iceLevel}</Text>
-                <Text>Số lượng: {item.quantity}</Text>
+            orders.map((order, orderIndex) => (
+              <View
+                key={`order-${orderIndex}-${order.id}`}
+                style={styles.itemCard}
+              >
+                <Text style={styles.itemName}>
+                  Mã đơn: {String(order.id).slice(-6).toUpperCase()}
+                </Text>
+                <Text style={{ color: 'green' }}>Trạng thái: {order.status}</Text>
                 <Text>
-                  Giá: {(parseInt(item.price) * item.quantity).toLocaleString()}
+                  Thời gian: {new Date(order.createdAt).toLocaleString("vi-VN")}
+                </Text>
+                <Text>
+                  Phương thức thanh toán:{" "}
+                  {order.paymentMethod === "cash" ? "Tiền mặt" : "Quét QR"}
+                </Text>
+
+                {Array.isArray(order.items) &&
+                  order.items.map((item, itemIndex) => (
+                    <View
+                      key={`order-${orderIndex}-item-${itemIndex}`}
+                      style={{ marginVertical: 5 }}
+                    >
+                      <Text>{item.name}</Text>
+                      <Text>
+                        {item.quantity} x {parseInt(item.price).toLocaleString()}đ
+                      </Text>
+                    </View>
+                  ))}
+
+                <Text style={styles.totalText}>
+                  Tổng cộng:{" "}
+                  {(typeof order.total === "number"
+                    ? order.total
+                    : 0
+                  ).toLocaleString()}
                   đ
                 </Text>
-                <View style={styles.cartActions}>
-                  <TouchableOpacity
-                    style={styles.cartButton}
-                    onPress={() =>
-                      goToOrderScreen(route.params?.navigation, item)
-                    }
-                  >
-                    <FontAwesome name="shopping-cart" size={16} color="#fff" />
-                    <Text style={styles.cartButtonText}>Đặt hàng</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() =>
-                      Alert.alert(
-                        "Xác nhận",
-                        "Bạn có muốn xoá sản phẩm này khỏi giỏ hàng?",
-                        [
-                          { text: "Huỷ" },
-                          {
-                            text: "Xoá",
-                            onPress: () => removeFromCart(item.id),
-                            style: "destructive",
-                          },
-                        ]
-                      )
-                    }
-                  >
-                    <FontAwesome name="trash" size={20} color="#c00" />
-                  </TouchableOpacity>
-                </View>
               </View>
             ))
-          )
-        ) : orders.length === 0 ? (
-          <Text style={styles.emptyText}>Bạn chưa có đơn hàng nào</Text>
-        ) : (
-          orders.map((order, orderIndex) => (
-            <View
-              key={`order-${orderIndex}-${order.id}`}
-              style={styles.itemCard}
-            >
-              <Text style={styles.itemName}>
-                Mã đơn: {String(order.id).slice(-6).toUpperCase()}
-              </Text>
-              <Text>Trạng thái: {order.status}</Text>
-              <Text>
-                Thời gian: {new Date(order.createdAt).toLocaleString("vi-VN")}
-              </Text>
-
-              {Array.isArray(order.items) &&
-                order.items.map((item, itemIndex) => (
-                  <View
-                    key={`order-${orderIndex}-item-${itemIndex}`}
-                    style={{ marginVertical: 5 }}
-                  >
-                    <Text>{item.name}</Text>
-                    <Text>
-                      {item.quantity} x {parseInt(item.price).toLocaleString()}đ
-                    </Text>
-                  </View>
-                ))}
-
-              <Text style={styles.totalText}>
-                Tổng cộng:{" "}
-                {(typeof order.total === "number"
-                  ? order.total
-                  : 0
-                ).toLocaleString()}
-                đ
-              </Text>
-            </View>
-          ))
-        )}
+          )}
+        {/* )} */}
       </ScrollView>
     </View>
   );
@@ -185,6 +192,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
+  },
+  singleTabButton: {
+    
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   activeTabButton: {
     borderBottomWidth: 2,
@@ -223,25 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#6F4E37",
   },
-  cartActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-    alignItems: "center",
-  },
-  cartButton: {
-    flexDirection: "row",
-    backgroundColor: "#6F4E37",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  cartButtonText: {
-    color: "#fff",
-    marginLeft: 5,
-  },
-  //xóa
+ 
   orderActionContainer: {
     marginTop: 10,
     alignItems: "flex-end",

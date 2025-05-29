@@ -15,7 +15,7 @@ import { useIsFocused } from "@react-navigation/native";
 
 // Import Firestore functions
 import { getFirestore, collection, getDocs, doc, deleteDoc } from "firebase/firestore";
-import app from "../../sever/firebase";
+import app from "../../sever/firebase"; // Đảm bảo đường dẫn này chính xác
 
 // Initialize Firestore DB
 const db = getFirestore(app);
@@ -41,7 +41,7 @@ const DrinksScreen = ({ navigation }) => {
       const filtered = drinks.filter(
         (drink) =>
           drink.drinkname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          drink.category.toLowerCase().includes(searchQuery.toLowerCase())
+          (drink.category && drink.category.toLowerCase().includes(searchQuery.toLowerCase())) // Thêm kiểm tra drink.category
       );
       setFilteredDrinks(filtered);
     }
@@ -52,27 +52,29 @@ const DrinksScreen = ({ navigation }) => {
     setLoading(true);
     console.log("DrinksScreen: Bắt đầu fetchDrinks.");
     try {
-      console.log("DrinksScreen: Chuẩn bị lấy dữ liệu từ collection 'drinks'...");
-      const querySnapshot = await getDocs(collection(db, "douong"));
+      // *** COLLECTION NAME: Đảm bảo là "douong" để nhất quán với các thao tác khác trong file này ***
+      console.log("DrinksScreen: Chuẩn bị lấy dữ liệu từ collection 'douong'...");
+      const querySnapshot = await getDocs(collection(db, "douong")); // <--- Giữ nguyên "douong"
       console.log(`DrinksScreen: Đã nhận querySnapshot. Số lượng tài liệu: ${querySnapshot.size}`);
 
       const fetchedDrinks = [];
       if (querySnapshot.empty) {
-        console.log("DrinksScreen: Collection 'drinks' rỗng hoặc không tìm thấy tài liệu nào.");
+        console.log("DrinksScreen: Collection 'douong' rỗng hoặc không tìm thấy tài liệu nào.");
       } else {
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log(`DrinksScreen: Đang xử lý tài liệu ID: ${doc.id}, Dữ liệu:`, data);
+          // Đảm bảo các trường dữ liệu có sẵn trước khi sử dụng
           fetchedDrinks.push({
             id: doc.id,
-            category: data.category,
-            description: data.description,
-            drinkname: data.drinkname,
-            image: data.image,
-            price: parseFloat(data.price),
-            quatiy: parseInt(data.quatiy),
-            start: parseFloat(data.start),
-            status: data.status,
+            category: data.category || 'Không rõ', // Gán giá trị mặc định nếu không có
+            description: data.description || '',
+            drinkname: data.drinkname || 'Không tên',
+            image: data.image || 'https://via.placeholder.com/100', // Ảnh placeholder
+            price: typeof data.price === 'number' ? data.price : (parseFloat(data.price) || 0),
+            quatiy: typeof data.quatiy === 'number' ? data.quatiy : (parseInt(data.quatiy) || 0),
+            start: typeof data.start === 'number' ? data.start : (parseFloat(data.start) || 0),
+            status: data.status || 'N/A',
+            active: data.active !== undefined ? data.active : false, // Lấy trạng thái 'active', mặc định là false
           });
         });
       }
@@ -88,8 +90,8 @@ const DrinksScreen = ({ navigation }) => {
     }
   };
 
-  const handleDeleteDrink = (id) => {
-    Alert.alert("Xác nhận", "Bạn có chắc chắn muốn xóa đồ uống này?", [
+  const handleDeleteDrink = (id, name) => { // Thêm name để hiển thị trong Alert
+    Alert.alert("Xác nhận", `Bạn có chắc chắn muốn xóa đồ uống "${name}"?`, [
       { text: "Hủy", style: "cancel" },
       {
         text: "Xóa",
@@ -98,10 +100,11 @@ const DrinksScreen = ({ navigation }) => {
           setLoading(true);
           console.log(`DrinksScreen: Bắt đầu xóa đồ uống với ID: ${id}`);
           try {
-            await deleteDoc(doc(db, "drinks", id));
+            // *** COLLECTION NAME: Đảm bảo là "douong" để nhất quán với các thao tác khác trong file này ***
+            await deleteDoc(doc(db, "douong", id)); // <--- Giữ nguyên "douong"
             console.log(`DrinksScreen: Đã xóa thành công đồ uống ID: ${id}`);
             Alert.alert("Thành công", "Đồ uống đã được xóa.");
-            fetchDrinks();
+            fetchDrinks(); // Tải lại danh sách sau khi xóa
           } catch (error) {
             console.error(`DrinksScreen: Lỗi khi xóa đồ uống ID ${id}:`, error);
             Alert.alert("Lỗi", `Không thể xóa đồ uống: ${error.message}`);
@@ -117,7 +120,8 @@ const DrinksScreen = ({ navigation }) => {
   const renderDrinkItem = ({ item }) => (
     <TouchableOpacity
       style={styles.drinkItem}
-      onPress={() => navigation.navigate("DrinkDetails", { drink: item })}
+      // *** SỬA LỖI TRUYỀN THAM SỐ: TRUYỀN drinkId THAY VÌ TOÀN BỘ ITEM ***
+      onPress={() => navigation.navigate("DrinkDetails", { drinkId: item.id })}
     >
       <Image
         source={{ uri: item.image }}
@@ -130,16 +134,17 @@ const DrinksScreen = ({ navigation }) => {
           {item.price.toLocaleString("vi-VN")} đ
         </Text>
       </View>
-      <View style={styles.actions}>
+      <View style={styles.drinkActions}>
         <TouchableOpacity
           style={[styles.actionButton, styles.editButton]}
-          onPress={() => navigation.navigate("EditDrink", { drink: item })}
+          // *** SỬA LỖI TRUYỀN THAM SỐ: TRUYỀN drinkId THAY VÌ TOÀN BỘ ITEM ***
+          onPress={() => navigation.navigate("EditDrink", { drinkId: item.id })}
         >
           <Ionicons name="pencil" size={20} color="white" />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteDrink(item.id)}
+          onPress={() => handleDeleteDrink(item.id, item.drinkname)} // Truyền cả tên đồ uống
         >
           <Ionicons name="trash" size={20} color="white" />
         </TouchableOpacity>
@@ -185,6 +190,7 @@ const DrinksScreen = ({ navigation }) => {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Không tìm thấy đồ uống nào.</Text>
           <Text style={styles.emptyText}>Vui lòng kiểm tra lại dữ liệu trên Firebase Firestore.</Text>
+          <Text style={styles.emptyText}>(Đảm bảo collection là 'douong' và có dữ liệu)</Text>
         </View>
       ) : (
         <FlatList
@@ -278,18 +284,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#8B0000",
   },
-  actions: {
-    justifyContent: "center",
-    padding: 10,
+  drinkActions: { // Đổi tên từ 'actions' sang 'drinkActions' để rõ ràng hơn, nếu cần
+    flexDirection: "row", // Đảm bảo các nút nằm ngang
+    alignItems: "center", // Căn giữa các nút theo chiều dọc
+    paddingRight: 10, // Thêm khoảng cách bên phải
   },
   actionButton: {
     padding: 8,
     borderRadius: 6,
-    marginBottom: 8,
-    alignItems: "center",
+    marginLeft: 5, // Khoảng cách giữa các nút
   },
   editButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#2196F3", // Màu xanh dương cho nút sửa
   },
   deleteButton: {
     backgroundColor: "#F44336",
