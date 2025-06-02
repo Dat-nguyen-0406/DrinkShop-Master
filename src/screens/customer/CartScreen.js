@@ -31,11 +31,12 @@ const CartScreen = ({ route }) => {
   
   useEffect(() => {
     if (route.params?.activeTab) {
+      //route.params: object chứa các tham số điều hướng được truyền vào khi gọi navigation
       setActiveTab(route.params.activeTab);
     }
   }, [route.params]);
 
-  
+  //mỗi khi màn hình được hiển thị(focus)
   useEffect(() => {
     if (isFocused) {
       
@@ -50,7 +51,7 @@ const CartScreen = ({ route }) => {
       const db = getFirestore(app);
       const userData = await AsyncStorage.getItem("userData");
       const userId = userData ? JSON.parse(userData).id : null;
-
+      //nếu ngdung đăng nhập. Tải đơn hàng qua userId
       if (userId) {
         const q = query(
           collection(db, "orders"),

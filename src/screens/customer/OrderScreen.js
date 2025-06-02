@@ -79,14 +79,18 @@ const OptionSelector = ({ label, selectedValue, onSelect }) => {
 
 const ReviewItem = ({ review }) => {
   // Đảm bảo review.createdAt là một timestamp hoặc Firestore Timestamp
-  const reviewDate = review.createdAt?.toDate ? new Date(review.createdAt.toDate()) : (review.createdAt ? new Date(review.createdAt) : null);
+  const reviewDate = review.createdAt?.toDate
+    ? new Date(review.createdAt.toDate())
+    : review.createdAt
+    ? new Date(review.createdAt)
+    : null;
 
   return (
     <View style={styles.reviewItem}>
       <View style={styles.reviewHeader}>
         <Text style={styles.reviewUser}>{review.userName || "Khách hàng"}</Text>
         <Text style={styles.reviewDate}>
-          {reviewDate ? reviewDate.toLocaleDateString("vi-VN") : 'N/A'}
+          {reviewDate ? reviewDate.toLocaleDateString("vi-VN") : "N/A"}
         </Text>
       </View>
       <View style={styles.ratingStars}>
@@ -133,14 +137,19 @@ const OrderScreen = () => {
         if (userDataString) {
           const parsedUserData = JSON.parse(userDataString);
           // Đảm bảo lấy 'fullname' nếu có, fallback về 'name' hoặc 'Khách hàng'
-          setLoggedInUserName(parsedUserData.fullname || parsedUserData.name || "Khách hàng");
+          setLoggedInUserName(
+            parsedUserData.fullname || parsedUserData.name || "Khách hàng"
+          );
           setLoggedInUserId(parsedUserData.id || null);
         } else {
           setLoggedInUserName("Khách hàng");
           setLoggedInUserId(null);
         }
       } catch (error) {
-        console.error("Lỗi khi tải thông tin người dùng từ AsyncStorage:", error);
+        console.error(
+          "Lỗi khi tải thông tin người dùng từ AsyncStorage:",
+          error
+        );
         setLoggedInUserName("Khách hàng");
         setLoggedInUserId(null);
       }
@@ -173,7 +182,8 @@ const OrderScreen = () => {
             navigation.goBack();
             return; // Thoát sớm nếu không tìm thấy đồ uống
           }
-        } else if (drinkId) { // Nếu không phải từ giỏ hàng thì load như bình thường bằng drinkId
+        } else if (drinkId) {
+          // Nếu không phải từ giỏ hàng thì load như bình thường bằng drinkId
           const drinkRef = doc(db, "douong", drinkId.toString());
           const drinkSnap = await getDoc(drinkRef);
 
@@ -186,9 +196,9 @@ const OrderScreen = () => {
             return; // Thoát sớm nếu không tìm thấy đồ uống
           }
         } else {
-            Alert.alert("Lỗi", "Không có thông tin đồ uống để hiển thị.");
-            navigation.goBack();
-            return; // Thoát sớm nếu không có drinkId và cartItem
+          Alert.alert("Lỗi", "Không có thông tin đồ uống để hiển thị.");
+          navigation.goBack();
+          return; // Thoát sớm nếu không có drinkId và cartItem
         }
 
         // Sau khi đã có currentDrink, tải reviews
@@ -196,7 +206,6 @@ const OrderScreen = () => {
           const unsubscribe = loadReviews(currentDrink.id);
           return () => unsubscribe();
         }
-
       } catch (error) {
         Alert.alert("Lỗi", "Có lỗi khi tải thông tin đồ uống");
         console.log("Lỗi thông tin đồ uống", error);
@@ -208,8 +217,8 @@ const OrderScreen = () => {
     fetchDrinkDetails();
   }, [drinkId, route.params?.cartItem]);
 
-
-  const loadReviews = (id) => { // Đổi tên tham số để tránh nhầm lẫn với drinkId của component
+  const loadReviews = (id) => {
+    // Đổi tên tham số để tránh nhầm lẫn với drinkId của component
     const db = getFirestore(app);
     const reviewsRef = collection(db, "reviews");
     const q = query(reviewsRef, where("drinkId", "==", id)); // Sử dụng id được truyền vào
@@ -225,11 +234,15 @@ const OrderScreen = () => {
     return unsubscribe;
   };
 
-  // Thay đổi hàm handleOrderNow trong OrderScreen.js
+  //  hàm handleOrderNow trong OrderScreen.js
   const handleOrderNow = async () => {
     try {
       // Kiểm tra xem người dùng đã đăng nhập chưa
-      if (!loggedInUserName || loggedInUserName === "Khách hàng" || !loggedInUserId) {
+      if (
+        !loggedInUserName ||
+        loggedInUserName === "Khách hàng" ||
+        !loggedInUserId
+      ) {
         Alert.alert("Thông báo", "Vui lòng đăng nhập để đặt hàng.");
         return;
       }
@@ -316,8 +329,8 @@ const OrderScreen = () => {
 
     // Kiểm tra xem người dùng đã đăng nhập chưa
     if (!loggedInUserName || loggedInUserName === "Khách hàng") {
-        Alert.alert("Thông báo", "Vui lòng đăng nhập để gửi đánh giá.");
-        return;
+      Alert.alert("Thông báo", "Vui lòng đăng nhập để gửi đánh giá.");
+      return;
     }
 
     try {
